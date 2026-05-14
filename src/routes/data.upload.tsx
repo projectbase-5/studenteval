@@ -160,6 +160,7 @@ function DataUpload() {
                 onChange={(e) => e.target.files?.[0] && handleCsv(e.target.files[0])} />
             </label>
             {csvError && <div className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{csvError}</div>}
+            {csvSuccess && !csvError && <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">{csvSuccess}</div>}
           </Section>
         </TabsContent>
 
