@@ -38,11 +38,15 @@ function DataUpload() {
 
   const handleCsv = (file: File) => {
     setCsvError(null);
+    setCsvSuccess(null);
     Papa.parse<Record<string, string>>(file, {
       header: true, skipEmptyLines: true,
-      complete: (res) => {
+      complete: async (res) => {
         try {
           const baseIdx = students.length;
+          const headers = res.meta.fields ?? [];
+          const expected = ["name","attendance","study_hours","previous_marks","final_score"];
+          const missingCols = expected.filter((c) => !headers.includes(c));
           const rows: Student[] = res.data.map((r, i) => ({
             id: r.id || `UPL${Date.now().toString(36)}${String(baseIdx + i + 1).padStart(4, "0")}`,
             name: r.name || `Student ${i + 1}`,
@@ -59,8 +63,16 @@ function DataUpload() {
             final_score: Number(r.final_score) || 0,
           }));
           if (!rows.length) throw new Error("CSV had no rows.");
-          // Append to existing dataset (keeps mock + previously added rows)
-          workspace.addStudents(rows, "csv");
+          if (missingCols.length === expected.length) {
+            throw new Error(`CSV columns don't match expected schema. Expected at least one of: ${expected.join(", ")}. Got: ${headers.join(", ") || "(no headers)"}.`);
+          }
+          const result = await workspace.addStudents(rows, "csv");
+          if (result.error) {
+            setCsvError(`Saved 0 / ${rows.length} rows — ${result.error}`);
+          } else {
+            const warn = missingCols.length > 0 ? ` (warning: missing columns ${missingCols.join(", ")} — those values defaulted to 0)` : "";
+            setCsvSuccess(`Imported ${result.inserted} students${warn}.`);
+          }
         } catch (e) {
           setCsvError((e as Error).message);
         }
@@ -69,7 +81,7 @@ function DataUpload() {
     });
   };
 
-  const addManual = () => {
+  const addManual = async () => {
     if (!form.name.trim()) return;
     const s: Student = {
       id: `MAN${Date.now().toString(36)}${String(students.length + 1).padStart(4, "0")}`,
@@ -86,18 +98,35 @@ function DataUpload() {
       participation: form.participation as Student["participation"],
       final_score: Number(form.final_score),
     };
-    workspace.addStudents([s], "manual");
-    setForm({ ...form, name: "" });
+    const result = await workspace.addStudents([s], "manual");
+    if (result.error) {
+      setCsvError(`Could not save: ${result.error}`);
+    } else {
+      setCsvError(null);
+      setCsvSuccess(`Added ${form.name.trim()}.`);
+      setForm({ ...form, name: "" });
+    }
   };
 
   const [sampleLoading, setSampleLoading] = useState(false);
   const loadSample = async () => {
     setSampleLoading(true);
+    setCsvError(null);
+    setCsvSuccess(null);
     try {
-      await workspace.addStudents(SAMPLE_STUDENTS as Student[], "csv");
+      const result = await workspace.addStudents(SAMPLE_STUDENTS as Student[], "sample");
+      if (result.error) setCsvError(`Sample load failed: ${result.error}`);
+      else setCsvSuccess(`Loaded ${result.inserted} sample students.`);
     } finally {
       setSampleLoading(false);
     }
+  };
+
+  const removeMockData = async () => {
+    if (!confirm("Remove the seeded sample data only? Manual and CSV-uploaded entries will be kept.")) return;
+    const result = await workspace.clearMockData();
+    if (result.error) setCsvError(`Could not remove sample data: ${result.error}`);
+    else setCsvSuccess("Sample data removed. Manual and CSV entries are preserved.");
   };
 
   return (
