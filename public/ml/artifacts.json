@@ -1,0 +1,386 @@
+{
+  "summary": {
+    "n_rows": 1044,
+    "n_features": 36,
+    "n_math": 395,
+    "n_por": 649,
+    "pass_rate": 0.7796934865900383,
+    "avg_g3": 11.341954022988507,
+    "avg_absences": 4.434865900383142,
+    "avg_studytime": 1.9703065134099618
+  },
+  "top_correlations": [
+    {
+      "feature": "G2",
+      "corr": 0.9107431630583613
+    },
+    {
+      "feature": "G1",
+      "corr": 0.8091417205401173
+    },
+    {
+      "feature": "failures",
+      "corr": -0.3831452797182743
+    },
+    {
+      "feature": "Medu",
+      "corr": 0.20147169024090728
+    },
+    {
+      "feature": "parent_edu",
+      "corr": 0.19960673102960486
+    },
+    {
+      "feature": "studytime",
+      "corr": 0.16162893520293836
+    },
+    {
+      "feature": "Fedu",
+      "corr": 0.1597960494449447
+    },
+    {
+      "feature": "avg_alcohol",
+      "corr": -0.13424360809923236
+    },
+    {
+      "feature": "Dalc",
+      "corr": -0.12964212480071244
+    },
+    {
+      "feature": "age",
+      "corr": -0.12528243256717936
+    }
+  ],
+  "regression_results": [
+    {
+      "name": "Linear Regression",
+      "r2": 0.7996635665959501,
+      "mae": 1.0168877078816234,
+      "rmse": 1.7599332875539047,
+      "cv_r2": 0.8382411376722503
+    },
+    {
+      "name": "Random Forest",
+      "r2": 0.8248890348062946,
+      "mae": 0.9401116427432218,
+      "rmse": 1.6454053599376144,
+      "cv_r2": 0.8547340789443977
+    },
+    {
+      "name": "Gradient Boosting",
+      "r2": 0.8372170435311723,
+      "mae": 0.903663729214305,
+      "rmse": 1.5864292284214885,
+      "cv_r2": 0.8630560793862818
+    }
+  ],
+  "best_regressor": "Gradient Boosting",
+  "classification": {
+    "model": "Random Forest Classifier",
+    "accuracy": 0.8708133971291866,
+    "cv_accuracy": 0.925748502994012,
+    "confusion": [
+      [
+        38,
+        22
+      ],
+      [
+        5,
+        144
+      ]
+    ],
+    "precision_pass": 0.8674698795180723,
+    "recall_pass": 0.9664429530201343,
+    "f1_pass": 0.9142857142857143
+  },
+  "top_features": [
+    {
+      "feature": "G2",
+      "importance": 0.8234732154918599
+    },
+    {
+      "feature": "absences",
+      "importance": 0.05884839556550884
+    },
+    {
+      "feature": "G1",
+      "importance": 0.010554501028396506
+    },
+    {
+      "feature": "studytime",
+      "importance": 0.01016380936553196
+    },
+    {
+      "feature": "goout",
+      "importance": 0.007649166821142989
+    },
+    {
+      "feature": "age",
+      "importance": 0.006666663866904166
+    },
+    {
+      "feature": "course_Portuguese",
+      "importance": 0.006327461142428838
+    },
+    {
+      "feature": "health",
+      "importance": 0.005490195695794356
+    },
+    {
+      "feature": "sex_M",
+      "importance": 0.004697726714076514
+    },
+    {
+      "feature": "freetime",
+      "importance": 0.004494766173422598
+    },
+    {
+      "feature": "famrel",
+      "importance": 0.003942501525758151
+    },
+    {
+      "feature": "parent_edu",
+      "importance": 0.003589826636097458
+    },
+    {
+      "feature": "avg_alcohol",
+      "importance": 0.0035397011277115216
+    },
+    {
+      "feature": "reason_home",
+      "importance": 0.0035186414756577422
+    },
+    {
+      "feature": "Fjob_services",
+      "importance": 0.003107474845068596
+    }
+  ],
+  "sample_predictions": [
+    {
+      "actual": 7.0,
+      "predicted": 7.853824770040019,
+      "G1": 8.0,
+      "G2": 7.0,
+      "absences": 14.0,
+      "studytime": 1.0,
+      "failures": 1.0
+    },
+    {
+      "actual": 13.0,
+      "predicted": 13.284857631687787,
+      "G1": 12.0,
+      "G2": 13.0,
+      "absences": 0.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 11.0,
+      "predicted": 10.91599274030553,
+      "G1": 9.0,
+      "G2": 11.0,
+      "absences": 6.0,
+      "studytime": 1.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 11.0,
+      "predicted": 12.551898050050562,
+      "G1": 11.0,
+      "G2": 12.0,
+      "absences": 2.0,
+      "studytime": 1.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 15.0,
+      "predicted": 15.728365626833222,
+      "G1": 16.0,
+      "G2": 15.0,
+      "absences": 2.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 12.0,
+      "predicted": 8.656305313086426,
+      "G1": 10.0,
+      "G2": 9.0,
+      "absences": 0.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 15.0,
+      "predicted": 12.711529712397606,
+      "G1": 12.0,
+      "G2": 12.0,
+      "absences": 2.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 13.0,
+      "predicted": 12.99121253051596,
+      "G1": 13.0,
+      "G2": 13.0,
+      "absences": 2.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 16.0,
+      "predicted": 15.36573039265743,
+      "G1": 13.0,
+      "G2": 15.0,
+      "absences": 0.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 14.0,
+      "predicted": 12.964172141178944,
+      "G1": 14.0,
+      "G2": 13.0,
+      "absences": 0.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 10.0,
+      "predicted": 10.124482644485468,
+      "G1": 9.0,
+      "G2": 10.0,
+      "absences": 0.0,
+      "studytime": 1.0,
+      "failures": 0.0
+    },
+    {
+      "actual": 9.0,
+      "predicted": 9.631072470843778,
+      "G1": 9.0,
+      "G2": 9.0,
+      "absences": 2.0,
+      "studytime": 2.0,
+      "failures": 0.0
+    }
+  ],
+  "grade_distribution": [
+    53,
+    1,
+    0,
+    0,
+    1,
+    8,
+    18,
+    19,
+    67,
+    63,
+    153,
+    151,
+    103,
+    113,
+    90,
+    82,
+    52,
+    35,
+    27,
+    7,
+    1
+  ],
+  "studytime_avg_grade": [
+    {
+      "studytime": 1,
+      "avg_g3": 10.580441640378549,
+      "count": 317
+    },
+    {
+      "studytime": 2,
+      "avg_g3": 11.335984095427435,
+      "count": 503
+    },
+    {
+      "studytime": 3,
+      "avg_g3": 12.493827160493828,
+      "count": 162
+    },
+    {
+      "studytime": 4,
+      "avg_g3": 12.274193548387096,
+      "count": 62
+    }
+  ],
+  "absences_buckets": [
+    {
+      "bucket": "0",
+      "avg_g3": 10.88857938718663,
+      "count": 359
+    },
+    {
+      "bucket": "1-3",
+      "avg_g3": 12.039024390243902,
+      "count": 205
+    },
+    {
+      "bucket": "4-7",
+      "avg_g3": 11.837944664031621,
+      "count": 253
+    },
+    {
+      "bucket": "8-15",
+      "avg_g3": 11.052023121387283,
+      "count": 173
+    },
+    {
+      "bucket": "16+",
+      "avg_g3": 10.314814814814815,
+      "count": 54
+    }
+  ],
+  "failures_avg_grade": [
+    {
+      "failures": 0,
+      "avg_g3": 12.05458768873403,
+      "count": 861
+    },
+    {
+      "failures": 1,
+      "avg_g3": 8.425,
+      "count": 120
+    },
+    {
+      "failures": 2,
+      "avg_g3": 7.484848484848484,
+      "count": 33
+    },
+    {
+      "failures": 3,
+      "avg_g3": 6.8,
+      "count": 30
+    }
+  ],
+  "pass_by_sex": [
+    {
+      "sex": "F",
+      "pass_rate": 0.7884940778341794,
+      "count": 591
+    },
+    {
+      "sex": "M",
+      "pass_rate": 0.7682119205298014,
+      "count": 453
+    }
+  ],
+  "pass_by_school": [
+    {
+      "school": "GP",
+      "pass_rate": 0.8121761658031088,
+      "count": 772
+    },
+    {
+      "school": "MS",
+      "pass_rate": 0.6875,
+      "count": 272
+    }
+  ]
+}
