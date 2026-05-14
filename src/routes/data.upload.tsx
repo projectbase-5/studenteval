@@ -41,8 +41,9 @@ function DataUpload() {
       header: true, skipEmptyLines: true,
       complete: (res) => {
         try {
+          const baseIdx = students.length;
           const rows: Student[] = res.data.map((r, i) => ({
-            id: r.id || `UPL${String(i + 1).padStart(4, "0")}`,
+            id: r.id || `UPL${Date.now().toString(36)}${String(baseIdx + i + 1).padStart(4, "0")}`,
             name: r.name || `Student ${i + 1}`,
             gender: (r.gender === "F" ? "F" : "M") as "M" | "F",
             class: r.class || "—",
@@ -57,7 +58,8 @@ function DataUpload() {
             final_score: Number(r.final_score) || 0,
           }));
           if (!rows.length) throw new Error("CSV had no rows.");
-          workspace.setStudents(rows.map(engineer));
+          // Append to existing dataset (keeps mock + previously added rows)
+          workspace.addStudents(rows, "csv");
         } catch (e) {
           setCsvError((e as Error).message);
         }
@@ -69,7 +71,7 @@ function DataUpload() {
   const addManual = () => {
     if (!form.name.trim()) return;
     const s: Student = {
-      id: `MAN${String(students.length + 1).padStart(4, "0")}`,
+      id: `MAN${Date.now().toString(36)}${String(students.length + 1).padStart(4, "0")}`,
       name: form.name.trim(),
       gender: form.gender as "M" | "F",
       class: form.class,
@@ -83,7 +85,7 @@ function DataUpload() {
       participation: form.participation as Student["participation"],
       final_score: Number(form.final_score),
     };
-    workspace.setStudents([engineer(s), ...students]);
+    workspace.addStudents([s], "manual");
     setForm({ ...form, name: "" });
   };
 
