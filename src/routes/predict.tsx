@@ -300,13 +300,17 @@ function PredictPage() {
           </Section>
 
           {phase === "loading" && (
-            <Section>
-              <WalkingLoader label="Running ML model…" />
-            </Section>
+            <div ref={loaderRef}>
+              <Section>
+                <WalkingLoader label="Running ML model…" />
+              </Section>
+            </div>
           )}
 
           {phase === "done" && result && (
-            <PredictResult inputs={result.inputs} score={result.score} />
+            <div ref={resultRef} className="scroll-mt-20">
+              <PredictResult inputs={result.inputs} score={result.score} />
+            </div>
           )}
         </div>
       </div>
