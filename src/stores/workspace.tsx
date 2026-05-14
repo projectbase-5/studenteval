@@ -108,15 +108,9 @@ export const workspace = {
       return { inserted: 0, error: e?.message ?? "Insert failed" };
     }
   },
-  /** Wipe all students from the database and from local state. */
+  /** Clear local view only. Database rows are not deleted (no public delete access). */
   async clearAll() {
-    try {
-      // delete every row (RLS currently public, but DELETE not policy-allowed) — use a filter that matches all
-      await supabase.from("students").delete().not("id", "is", null);
-    } catch (e) {
-      console.error("Failed to clear students:", e);
-    }
-    state = { ...state, students: [] };
+    state = { ...state, students: [], hydrated: false };
     emit();
   },
   async hydrate(force = false) {
