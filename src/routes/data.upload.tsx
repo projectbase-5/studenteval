@@ -131,6 +131,19 @@ function DataUpload() {
     else setCsvSuccess("Sample data removed. Manual and CSV entries are preserved.");
   };
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState<"csv" | "manual" | null>(null);
+  const handleDeleteBySource = async (source: "csv" | "manual") => {
+    setDeleting(source);
+    setCsvError(null);
+    setCsvSuccess(null);
+    const result = await workspace.deleteBySource(source);
+    setDeleting(null);
+    setDeleteOpen(false);
+    if (result.error) setCsvError(`Could not delete ${source} data: ${result.error}`);
+    else setCsvSuccess(`${source === "csv" ? "CSV" : "Manual"} data deleted.`);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
