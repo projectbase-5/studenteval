@@ -138,7 +138,10 @@ export const workspace = {
         .order("created_at", { ascending: false })
         .limit(5000);
       if (error) throw error;
-      const rows = (data ?? []).map(rowToStudent).map(engineer);
+      const rows: StoredStudent[] = (data ?? []).map((r: any) => ({
+        ...engineer(rowToStudent(r)),
+        source: (["manual", "csv", "sample"].includes(r.source) ? r.source : "manual") as RowSource,
+      }));
       state = { ...state, students: rows, hydrated: true };
       emit();
     } catch (e) {
