@@ -1,5 +1,6 @@
-import { useSyncExternalStore } from "react";
-import { ENGINEERED_STUDENTS, type EngineeredStudent } from "@/data/students";
+import { useSyncExternalStore, useEffect } from "react";
+import { ENGINEERED_STUDENTS, engineer, type EngineeredStudent, type Student } from "@/data/students";
+import { supabase } from "@/integrations/supabase/client";
 
 type Pipeline = {
   loaded: boolean;
@@ -12,6 +13,7 @@ type Pipeline = {
 type State = {
   students: EngineeredStudent[];
   pipeline: Pipeline;
+  hydrated: boolean;
 };
 
 type Listener = () => void;
@@ -25,27 +27,114 @@ const initial: State = {
     trained: false,
     selectedModel: "Random Forest",
   },
+  hydrated: false,
 };
 
 let state: State = initial;
 const listeners = new Set<Listener>();
-
 function emit() { listeners.forEach((l) => l()); }
+
+function rowToStudent(r: any): Student {
+  return {
+    id: r.student_code,
+    name: r.name,
+    gender: (r.gender === "F" ? "F" : "M"),
+    class: r.class,
+    semester: Number(r.semester),
+    study_hours: Number(r.study_hours),
+    attendance: Number(r.attendance),
+    sleep_hours: Number(r.sleep_hours),
+    assignments_completed: Number(r.assignments_completed),
+    previous_marks: Number(r.previous_marks),
+    internet_usage: Number(r.internet_usage),
+    participation: (["Low","Medium","High"].includes(r.participation) ? r.participation : "Medium") as Student["participation"],
+    final_score: Number(r.final_score),
+  };
+}
+
+function studentToRow(s: Student, source: "manual" | "csv") {
+  return {
+    student_code: s.id,
+    name: s.name,
+    gender: s.gender,
+    class: s.class,
+    semester: s.semester,
+    study_hours: s.study_hours,
+    attendance: s.attendance,
+    sleep_hours: s.sleep_hours,
+    assignments_completed: s.assignments_completed,
+    previous_marks: s.previous_marks,
+    internet_usage: s.internet_usage,
+    participation: s.participation,
+    final_score: s.final_score,
+    source,
+  };
+}
 
 export const workspace = {
   get: () => state,
-  setStudents(students: EngineeredStudent[]) {
-    state = { ...state, students };
-    emit();
-  },
   setPipeline(p: Partial<Pipeline>) {
     state = { ...state, pipeline: { ...state.pipeline, ...p } };
     emit();
   },
-  reset() { state = initial; emit(); },
+  /** Replace ALL students (used by reset). */
+  setStudents(students: EngineeredStudent[]) {
+    state = { ...state, students };
+    emit();
+  },
+  /** Append new students locally + persist to Supabase. Mock dataset is preserved. */
+  async addStudents(rows: Student[], source: "manual" | "csv" = "manual") {
+    const existingCodes = new Set(state.students.map((s) => s.id));
+    const fresh = rows.filter((r) => !existingCodes.has(r.id));
+    if (!fresh.length) return;
+    const engineered = fresh.map(engineer);
+    state = { ...state, students: [...engineered, ...state.students] };
+    emit();
+    try {
+      const { error } = await supabase
+        .from("students")
+        .insert(fresh.map((s) => studentToRow(s, source)));
+      if (error) console.error("Supabase insert failed:", error);
+    } catch (e) {
+      console.error(e);
+    }
+  },
+  /** Reset to mock-only and re-hydrate from Supabase. */
+  async reset() {
+    state = { ...initial, hydrated: false };
+    emit();
+    await workspace.hydrate();
+  },
+  async hydrate() {
+    if (state.hydrated) return;
+    try {
+      const { data, error } = await supabase
+        .from("students")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      const existingCodes = new Set(state.students.map((s) => s.id));
+      const fresh = (data ?? [])
+        .map(rowToStudent)
+        .filter((s) => !existingCodes.has(s.id))
+        .map(engineer);
+      state = { ...state, students: [...fresh, ...state.students], hydrated: true };
+      emit();
+    } catch (e) {
+      console.error("Failed to hydrate students from Supabase:", e);
+      state = { ...state, hydrated: true };
+      emit();
+    }
+  },
   subscribe(l: Listener) { listeners.add(l); return () => { listeners.delete(l); }; },
 };
 
 export function useWorkspace<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(workspace.subscribe, () => selector(workspace.get()), () => selector(initial));
+}
+
+/** Mount once at the app root to pull persisted students into the store. */
+export function useHydrateWorkspace() {
+  useEffect(() => { workspace.hydrate(); }, []);
 }
