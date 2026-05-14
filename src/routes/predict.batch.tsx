@@ -1,182 +1,304 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
-import { PageHeader, Section, Pill } from "@/components/ui-kit";
-import { Upload, Download, FileSpreadsheet, AlertCircle } from "lucide-react";
+import { PageHeader, Section, Pill, Kpi } from "@/components/ui-kit";
+import { WalkingLoader } from "@/components/WalkingLoader";
+import { useWorkspace } from "@/stores/workspace";
+import type { EngineeredStudent } from "@/data/students";
+import { Wand2, Download, Users, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/predict/batch")({
   component: BatchPredict,
   head: () => ({ meta: [{ title: "Batch Predictions — ScholarSense" }] }),
 });
 
-type Row = {
-  student_id?: string;
-  name?: string;
-  study_hours: number;
-  attendance: number;
-  sleep_hours: number;
+type Prediction = {
+  id: string;
+  name: string;
+  klass: string;
+  semester: number;
   previous_marks: number;
-  assignments_completed: number;
-  participation: string;
-  internet_usage: number;
+  attendance: number;
   predicted_score: number;
-  pass: string;
-  risk: string;
+  pass: boolean;
+  risk: "Low" | "Medium" | "High";
 };
 
-const REQUIRED = [
-  "study_hours","attendance","sleep_hours","previous_marks",
-  "assignments_completed","participation","internet_usage",
-];
-
-function predictRow(i: any): number {
-  const partBoost = i.participation === "High" ? 5 : i.participation === "Medium" ? 0 : -4;
-  const s =
-    0.30 * Number(i.previous_marks) +
-    0.18 * Number(i.attendance) +
-    2.4 * Number(i.study_hours) +
-    1.2 * Number(i.assignments_completed) -
-    1.1 * Math.max(0, Number(i.internet_usage) - 4) +
-    0.7 * (Number(i.sleep_hours) - 6) +
+function predictOne(s: EngineeredStudent): number {
+  const partBoost = s.participation === "High" ? 5 : s.participation === "Medium" ? 0 : -4;
+  const score =
+    0.30 * s.previous_marks +
+    0.18 * s.attendance +
+    2.4 * s.study_hours +
+    1.2 * s.assignments_completed -
+    1.1 * Math.max(0, s.internet_usage - 4) +
+    0.7 * (s.sleep_hours - 6) +
     partBoost;
-  return Math.max(0, Math.min(100, s));
+  return Math.max(0, Math.min(100, +score.toFixed(1)));
+}
+
+function riskOf(s: EngineeredStudent, score: number): "Low" | "Medium" | "High" {
+  if (s.attendance < 70 || score < 50) return "High";
+  if (s.attendance < 85 || score < 70) return "Medium";
+  return "Low";
 }
 
 function BatchPredict() {
-  const [rows, setRows] = useState<Row[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [filename, setFilename] = useState<string>("");
+  const students = useWorkspace((s) => s.students);
+  const [klass, setKlass] = useState<string>("");
+  const [semester, setSemester] = useState<string>("All");
+  const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
+  const [results, setResults] = useState<Prediction[] | null>(null);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+  const resultRef = useRef<HTMLDivElement | null>(null);
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFilename(f.name);
-    setError(null);
-    Papa.parse(f, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (res) => {
-        const data = res.data as any[];
-        if (data.length === 0) { setError("CSV is empty."); return; }
-        const cols = Object.keys(data[0] ?? {});
-        const missing = REQUIRED.filter((r) => !cols.includes(r));
-        if (missing.length) {
-          setError(`Missing required columns: ${missing.join(", ")}. Required: ${REQUIRED.join(", ")}`);
-          return;
-        }
-        const out: Row[] = data.map((r) => {
-          const score = +predictRow(r).toFixed(1);
-          const pass = score >= 40 ? "Yes" : "No";
-          const risk = score < 50 || Number(r.attendance) < 70 ? "High" : score < 70 || Number(r.attendance) < 85 ? "Medium" : "Low";
-          return {
-            student_id: r.student_id || r.id || "",
-            name: r.name || "",
-            study_hours: Number(r.study_hours),
-            attendance: Number(r.attendance),
-            sleep_hours: Number(r.sleep_hours),
-            previous_marks: Number(r.previous_marks),
-            assignments_completed: Number(r.assignments_completed),
-            participation: String(r.participation),
-            internet_usage: Number(r.internet_usage),
-            predicted_score: score,
-            pass,
-            risk,
-          };
-        });
-        setRows(out);
-      },
-      error: (err) => setError(err.message),
-    });
+  const classes = useMemo(
+    () => Array.from(new Set(students.map((s) => s.class))).sort(),
+    [students],
+  );
+  const semesters = useMemo(
+    () => Array.from(new Set(students.map((s) => s.semester))).sort((a, b) => a - b),
+    [students],
+  );
+
+  // default class
+  useEffect(() => {
+    if (!klass && classes.length) setKlass(classes[0]);
+  }, [classes, klass]);
+
+  const batch = useMemo(
+    () =>
+      students.filter(
+        (s) => s.class === klass && (semester === "All" || s.semester === Number(semester)),
+      ),
+    [students, klass, semester],
+  );
+
+  // Auto-scroll like the Predict page.
+  useEffect(() => {
+    if (phase === "loading" && loaderRef.current) {
+      loaderRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (phase === "done" && resultRef.current) {
+      const t = setTimeout(() => {
+        const top = resultRef.current!.getBoundingClientRect().top + window.scrollY - 72;
+        window.scrollTo({ top, behavior: "smooth" });
+      }, 60);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+
+  function runBatch() {
+    if (!batch.length) return;
+    setPhase("loading");
+    setResults(null);
+    setTimeout(() => {
+      const out: Prediction[] = batch.map((s) => {
+        const score = predictOne(s);
+        return {
+          id: s.id,
+          name: s.name,
+          klass: s.class,
+          semester: s.semester,
+          previous_marks: s.previous_marks,
+          attendance: s.attendance,
+          predicted_score: score,
+          pass: score >= 40,
+          risk: riskOf(s, score),
+        };
+      });
+      setResults(out);
+      setPhase("done");
+    }, 1500);
+  }
+
+  function reset() {
+    setPhase("idle");
+    setResults(null);
   }
 
   function downloadCsv() {
-    if (!rows) return;
-    const csv = Papa.unparse(rows);
+    if (!results) return;
+    const csv = Papa.unparse(
+      results.map((r) => ({
+        student_id: r.id,
+        name: r.name,
+        class: r.klass,
+        semester: r.semester,
+        previous_marks: r.previous_marks,
+        attendance: r.attendance,
+        predicted_score: r.predicted_score,
+        outcome: r.pass ? "Pass" : "Fail",
+        risk: r.risk,
+      })),
+    );
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `predictions-${Date.now()}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-  }
-
-  function downloadTemplate() {
-    const sample = [{
-      student_id: "STU0001", name: "Sample Student",
-      study_hours: 5, attendance: 88, sleep_hours: 7,
-      previous_marks: 72, assignments_completed: 10,
-      participation: "Medium", internet_usage: 3,
-    }];
-    const blob = new Blob([Papa.unparse(sample)], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "batch-template.csv"; a.click();
+    a.href = url;
+    a.download = `batch-${klass}-${Date.now()}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   }
+
+  const summary = useMemo(() => {
+    if (!results) return null;
+    const pass = results.filter((r) => r.pass).length;
+    const fail = results.length - pass;
+    const avg = results.reduce((a, r) => a + r.predicted_score, 0) / Math.max(1, results.length);
+    return {
+      total: results.length,
+      pass,
+      fail,
+      passRate: +((pass / Math.max(1, results.length)) * 100).toFixed(1),
+      avg: +avg.toFixed(1),
+    };
+  }, [results]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Batch Predictions"
-        description="Upload a CSV with one row per student, run predictions for the whole class, and download results."
-      />
-
-      <Section title="Upload CSV"
+        description="Pick a batch (class + semester), run the model on every student in it, and see who is predicted to pass or fail using their historical data."
         actions={
-          <button onClick={downloadTemplate} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
-            <FileSpreadsheet className="h-3.5 w-3.5" /> Download template
+          <button
+            onClick={reset}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Reset
           </button>
         }
-      >
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-center hover:bg-muted/50">
-          <Upload className="h-6 w-6 text-muted-foreground" />
-          <div className="text-sm font-medium">Click to upload CSV</div>
-          <div className="text-xs text-muted-foreground">
-            Required columns: {REQUIRED.join(", ")}
+      />
+
+      <Section title="Select a batch" description="Choose a class and (optionally) a semester to run predictions on.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block text-xs">
+            <span className="text-muted-foreground">Class</span>
+            <select
+              value={klass}
+              onChange={(e) => { setKlass(e.target.value); reset(); }}
+              className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
+            >
+              {classes.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="text-muted-foreground">Semester</span>
+            <select
+              value={semester}
+              onChange={(e) => { setSemester(e.target.value); reset(); }}
+              className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
+            >
+              <option value="All">All semesters</option>
+              {semesters.map((s) => <option key={s} value={s}>Semester {s}</option>)}
+            </select>
+          </label>
+          <div className="flex items-end">
+            <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-muted/40 px-3 text-sm">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="font-mono">{batch.length}</span>
+              <span className="text-muted-foreground">students in batch</span>
+            </div>
           </div>
-          <input type="file" accept=".csv" className="hidden" onChange={onFile} />
-        </label>
-        {filename && <div className="mt-3 text-xs text-muted-foreground">Loaded: <span className="font-mono text-foreground">{filename}</span></div>}
-        {error && (
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
-            <div>{error}</div>
-          </div>
-        )}
+        </div>
+
+        <div className="mt-5 flex justify-end border-t border-border pt-4">
+          <button
+            onClick={runBatch}
+            disabled={phase === "loading" || !batch.length}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          >
+            <Wand2 className="h-4 w-4" />
+            {phase === "loading" ? "Predicting…" : "Predict final scores for batch"}
+          </button>
+        </div>
       </Section>
 
-      {rows && rows.length > 0 && (
-        <Section
-          title={`Results (${rows.length} students)`}
-          actions={
-            <button onClick={downloadCsv} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              <Download className="h-3.5 w-3.5" /> Download CSV
-            </button>
-          }
-        >
-          <div className="max-h-[520px] overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card">
-                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                  <th className="px-3 py-2">ID</th>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2 text-right">Predicted</th>
-                  <th className="px-3 py-2">Pass</th>
-                  <th className="px-3 py-2">Risk</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i} className="border-b border-border/60">
-                    <td className="px-3 py-2 font-mono text-xs">{r.student_id}</td>
-                    <td className="px-3 py-2">{r.name}</td>
-                    <td className="px-3 py-2 text-right font-mono font-semibold">{r.predicted_score}</td>
-                    <td className="px-3 py-2"><Pill tone={r.pass === "Yes" ? "success" : "danger"}>{r.pass}</Pill></td>
-                    <td className="px-3 py-2"><Pill tone={r.risk === "High" ? "danger" : r.risk === "Medium" ? "warning" : "success"}>{r.risk}</Pill></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {phase === "loading" && (
+        <div ref={loaderRef}>
+          <Section>
+            <WalkingLoader label={`Running ML model on ${batch.length} students…`} />
+          </Section>
+        </div>
+      )}
+
+      {phase === "done" && results && summary && (
+        <div ref={resultRef} className="scroll-mt-20 space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <Kpi label="Students" value={summary.total} />
+            <Kpi label="Predicted pass" value={summary.pass} sub={`${summary.passRate}%`} />
+            <Kpi label="Predicted fail" value={summary.fail} />
+            <Kpi label="Avg score" value={summary.avg} sub="/ 100" />
+            <Kpi label="Batch" value={klass} sub={semester === "All" ? "all sems" : `Sem ${semester}`} />
           </div>
-        </Section>
+
+          {/* Pass / fail bar */}
+          <Section title="Pass vs Fail distribution">
+            <div className="flex h-3 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full transition-all"
+                style={{ width: `${summary.passRate}%`, background: "var(--success)" }}
+              />
+              <div
+                className="h-full transition-all"
+                style={{ width: `${100 - summary.passRate}%`, background: "var(--danger)" }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+              <span><Pill tone="success">Pass</Pill> {summary.pass}</span>
+              <span>{summary.fail} <Pill tone="danger">Fail</Pill></span>
+            </div>
+          </Section>
+
+          <Section
+            title={`Per-student predictions (${results.length})`}
+            actions={
+              <button
+                onClick={downloadCsv}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Download className="h-3.5 w-3.5" /> Download CSV
+              </button>
+            }
+          >
+            <div className="max-h-[560px] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card">
+                  <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                    <th className="px-3 py-2">ID</th>
+                    <th className="px-3 py-2">Name</th>
+                    <th className="px-3 py-2 text-right">Prev marks</th>
+                    <th className="px-3 py-2 text-right">Attendance</th>
+                    <th className="px-3 py-2 text-right">Predicted</th>
+                    <th className="px-3 py-2">Outcome</th>
+                    <th className="px-3 py-2">Risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...results]
+                    .sort((a, b) => b.predicted_score - a.predicted_score)
+                    .map((r) => (
+                      <tr key={r.id} className="border-b border-border/60">
+                        <td className="px-3 py-2 font-mono text-xs">{r.id}</td>
+                        <td className="px-3 py-2">{r.name}</td>
+                        <td className="px-3 py-2 text-right font-mono">{r.previous_marks}</td>
+                        <td className="px-3 py-2 text-right font-mono">{r.attendance}%</td>
+                        <td className="px-3 py-2 text-right font-mono font-semibold">{r.predicted_score}</td>
+                        <td className="px-3 py-2">
+                          <Pill tone={r.pass ? "success" : "danger"}>{r.pass ? "Pass" : "Fail"}</Pill>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Pill tone={r.risk === "High" ? "danger" : r.risk === "Medium" ? "warning" : "success"}>
+                            {r.risk}
+                          </Pill>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        </div>
       )}
     </div>
   );
