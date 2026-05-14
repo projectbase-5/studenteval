@@ -179,8 +179,8 @@ function DataUpload() {
                 <div className="text-sm font-medium">SAMPLE_500.csv</div>
                 <div className="text-xs text-muted-foreground">500 rows · 13 columns · seeded for reproducibility</div>
               </div>
-              <button onClick={loadSample} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                Load sample
+              <button onClick={loadSample} disabled={sampleLoading} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                {sampleLoading ? "Loading…" : students.length > 0 ? "Append sample" : "Load sample"}
               </button>
             </div>
           </Section>
