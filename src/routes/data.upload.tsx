@@ -7,6 +7,8 @@ import { DataTable } from "@/components/DataTable";
 import { useWorkspace, workspace } from "@/stores/workspace";
 import { engineer, SAMPLE_STUDENTS, type Student } from "@/data/students";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/data/upload")({
   component: DataUpload,
