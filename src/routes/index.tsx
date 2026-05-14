@@ -6,12 +6,6 @@ import {
 
 export const Route = createFileRoute("/")({
   component: Landing,
-  head: () => ({
-    meta: [
-      { title: "ScholarSense — Student Performance Prediction System" },
-      { name: "description", content: "Predict student academic performance using Machine Learning and data analytics. End-to-end platform for educators." },
-    ],
-  }),
 });
 
 const STEPS = [
