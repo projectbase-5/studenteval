@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, Section, Pill } from "@/components/ui-kit";
 import { WalkingLoader } from "@/components/WalkingLoader";
 import { ExplainPanel } from "@/components/ExplainPanel";
-import { SAMPLE_STUDENTS, type Student } from "@/data/students";
+import { useWorkspace } from "@/stores/workspace";
+import type { Student } from "@/data/students";
 import {
   Wand2, RefreshCw, TrendingUp, AlertTriangle, CheckCircle2,
   Search, Info, User2,
@@ -98,6 +99,7 @@ function studentToInputs(s: Student): Inputs {
 }
 
 function PredictPage() {
+  const allStudents = useWorkspace((s) => s.students);
   const [v, setV] = useState<Inputs>(DEFAULTS);
   const [selected, setSelected] = useState<Student | null>(null);
   const [search, setSearch] = useState("");
@@ -109,29 +111,27 @@ function PredictPage() {
   const loaderRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll the loader / result into view as the flow progresses.
+  // Use rAF + scrollIntoView for reliability across preview iframe + standalone tabs.
   useEffect(() => {
-    if (phase === "loading" && loaderRef.current) {
-      loaderRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    if (phase === "done" && resultRef.current) {
-      // Small delay so the DOM is painted before we measure.
-      const t = setTimeout(() => {
-        const el = resultRef.current!;
-        const top = el.getBoundingClientRect().top + window.scrollY - 72; // offset for sticky header
-        window.scrollTo({ top, behavior: "smooth" });
-      }, 60);
-      return () => clearTimeout(t);
-    }
+    if (phase !== "loading" && phase !== "done") return;
+    const target = phase === "loading" ? loaderRef.current : resultRef.current;
+    if (!target) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+    return () => cancelAnimationFrame(id);
   }, [phase]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return SAMPLE_STUDENTS.filter((s) => {
+    return allStudents.filter((s) => {
       if (klass !== "All classes" && s.class !== klass) return false;
       if (!q) return true;
       return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
     }).slice(0, 200);
-  }, [search, klass]);
+  }, [search, klass, allStudents]);
 
   function pickStudent(s: Student) {
     setSelected(s);
