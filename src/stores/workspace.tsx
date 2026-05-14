@@ -14,7 +14,7 @@ type Pipeline = {
 };
 
 type State = {
-  students: EngineeredStudent[];
+  students: StoredStudent[];
   pipeline: Pipeline;
   hydrated: boolean;
 };
