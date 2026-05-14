@@ -1,0 +1,2 @@
+CREATE POLICY "Public can delete csv students" ON public.students FOR DELETE USING (source = 'csv');
+CREATE POLICY "Public can delete manual students" ON public.students FOR DELETE USING (source = 'manual');

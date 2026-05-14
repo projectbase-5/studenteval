@@ -7,6 +7,8 @@ import { DataTable } from "@/components/DataTable";
 import { useWorkspace, workspace } from "@/stores/workspace";
 import { engineer, SAMPLE_STUDENTS, type Student } from "@/data/students";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/data/upload")({
   component: DataUpload,
@@ -129,6 +131,19 @@ function DataUpload() {
     else setCsvSuccess("Sample data removed. Manual and CSV entries are preserved.");
   };
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState<"csv" | "manual" | null>(null);
+  const handleDeleteBySource = async (source: "csv" | "manual") => {
+    setDeleting(source);
+    setCsvError(null);
+    setCsvSuccess(null);
+    const result = await workspace.deleteBySource(source);
+    setDeleting(null);
+    setDeleteOpen(false);
+    if (result.error) setCsvError(`Could not delete ${source} data: ${result.error}`);
+    else setCsvSuccess(`${source === "csv" ? "CSV" : "Manual"} data deleted.`);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -214,14 +229,50 @@ function DataUpload() {
                 {sampleLoading ? "Loading…" : students.length > 0 ? "Append sample" : "Load sample"}
               </button>
             </div>
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex flex-col items-end gap-2">
               <button
                 onClick={removeMockData}
                 className="inline-flex items-center gap-1.5 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/20"
               >
                 <Trash2 className="h-4 w-4" /> Remove all the mock data
               </button>
+              <button
+                onClick={() => setDeleteOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
             </div>
+
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete student data</DialogTitle>
+                  <DialogDescription>
+                    Choose which set of records to permanently delete. This cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={!!deleting}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteBySource("manual")}
+                    disabled={!!deleting}
+                  >
+                    {deleting === "manual" ? "Deleting…" : "Delete manual data"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteBySource("csv")}
+                    disabled={!!deleting}
+                  >
+                    {deleting === "csv" ? "Deleting…" : "Delete CSV data"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </Section>
         </TabsContent>
       </Tabs>
