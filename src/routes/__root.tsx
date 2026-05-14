@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Link, Outlet, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
+import { Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 
 import { WorkspaceShell } from "@/components/WorkspaceShell";
 
@@ -38,7 +38,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <WorkspaceShell />
-      <Outlet />
     </QueryClientProvider>
   );
 }
