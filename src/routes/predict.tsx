@@ -12,7 +12,6 @@ import {
 
 export const Route = createFileRoute("/predict")({
   component: PredictPage,
-  head: () => ({ meta: [{ title: "Predict Performance — ScholarSense" }] }),
 });
 
 type Inputs = {

@@ -10,7 +10,6 @@ import autoTable from "jspdf-autotable";
 
 export const Route = createFileRoute("/reports")({
   component: ReportsPage,
-  head: () => ({ meta: [{ title: "Reports & Insights — ScholarSense" }] }),
 });
 
 function ReportsPage() {

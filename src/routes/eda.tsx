@@ -10,7 +10,6 @@ import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/eda")({
   component: EDA,
-  head: () => ({ meta: [{ title: "Exploratory Data Analysis — ScholarSense" }] }),
 });
 
 const tooltipStyle = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 };

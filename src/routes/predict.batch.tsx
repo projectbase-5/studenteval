@@ -9,7 +9,6 @@ import { Wand2, Download, Users, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/predict/batch")({
   component: BatchPredict,
-  head: () => ({ meta: [{ title: "Batch Predictions — ScholarSense" }] }),
 });
 
 type Prediction = {

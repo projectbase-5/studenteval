@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/data/upload")({
   component: DataUpload,
-  head: () => ({ meta: [{ title: "Data Collection — ScholarSense" }] }),
 });
 
 const COLUMNS = [

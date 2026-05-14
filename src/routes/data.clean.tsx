@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/data/clean")({
   component: DataClean,
-  head: () => ({ meta: [{ title: "Data Cleaning — ScholarSense" }] }),
 });
 
 type StepKey = "missing" | "dedup" | "coerce" | "encode" | "scale";

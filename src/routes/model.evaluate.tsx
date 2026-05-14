@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/model/evaluate")({
   component: EvaluatePage,
-  head: () => ({ meta: [{ title: "Model Evaluation — ScholarSense" }] }),
 });
 
 const tooltipStyle = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 };
