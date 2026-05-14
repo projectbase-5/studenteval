@@ -135,6 +135,24 @@ function ThemeToggle() {
   );
 }
 
+function RouteProgress() {
+  const loc = useLocation();
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 350);
+    return () => clearTimeout(t);
+  }, [loc.pathname]);
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none fixed left-0 top-0 z-50 h-0.5 bg-primary transition-all duration-300 ${
+        visible ? "w-full opacity-100" : "w-0 opacity-0"
+      }`}
+    />
+  );
+}
+
 function Topbar() {
   const loc = useLocation();
   const title = TITLES[loc.pathname] ?? "ScholarSense";
