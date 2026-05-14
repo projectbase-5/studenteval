@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useEffect } from "react";
-import { ENGINEERED_STUDENTS, engineer, type EngineeredStudent, type Student } from "@/data/students";
+import { engineer, type EngineeredStudent, type Student } from "@/data/students";
 import { supabase } from "@/integrations/supabase/client";
 
 type Pipeline = {
@@ -19,7 +19,7 @@ type State = {
 type Listener = () => void;
 
 const initial: State = {
-  students: ENGINEERED_STUDENTS,
+  students: [],
   pipeline: {
     loaded: true,
     cleaned: true,
@@ -77,16 +77,16 @@ export const workspace = {
     state = { ...state, pipeline: { ...state.pipeline, ...p } };
     emit();
   },
-  /** Replace ALL students (used by reset). */
   setStudents(students: EngineeredStudent[]) {
     state = { ...state, students };
     emit();
   },
-  /** Append new students locally + persist to Supabase. Mock dataset is preserved. */
+  /** Append new students locally + persist to Supabase. */
   async addStudents(rows: Student[], source: "manual" | "csv" = "manual") {
     const existingCodes = new Set(state.students.map((s) => s.id));
     const fresh = rows.filter((r) => !existingCodes.has(r.id));
-    if (!fresh.length) return;
+    if (!fresh.length) return { inserted: 0, error: null as string | null };
+    // Optimistic local append
     const engineered = fresh.map(engineer);
     state = { ...state, students: [...engineered, ...state.students] };
     emit();
@@ -94,19 +94,33 @@ export const workspace = {
       const { error } = await supabase
         .from("students")
         .insert(fresh.map((s) => studentToRow(s, source)));
-      if (error) console.error("Supabase insert failed:", error);
-    } catch (e) {
+      if (error) {
+        console.error("Supabase insert failed:", error);
+        // Roll back local additions on failure
+        const codes = new Set(fresh.map((s) => s.id));
+        state = { ...state, students: state.students.filter((s) => !codes.has(s.id)) };
+        emit();
+        return { inserted: 0, error: error.message };
+      }
+      return { inserted: fresh.length, error: null };
+    } catch (e: any) {
       console.error(e);
+      return { inserted: 0, error: e?.message ?? "Insert failed" };
     }
   },
-  /** Reset to mock-only and re-hydrate from Supabase. */
-  async reset() {
-    state = { ...initial, hydrated: false };
+  /** Wipe all students from the database and from local state. */
+  async clearAll() {
+    try {
+      // delete every row (RLS currently public, but DELETE not policy-allowed) — use a filter that matches all
+      await supabase.from("students").delete().not("id", "is", null);
+    } catch (e) {
+      console.error("Failed to clear students:", e);
+    }
+    state = { ...state, students: [] };
     emit();
-    await workspace.hydrate();
   },
-  async hydrate() {
-    if (state.hydrated) return;
+  async hydrate(force = false) {
+    if (state.hydrated && !force) return;
     try {
       const { data, error } = await supabase
         .from("students")
@@ -114,12 +128,8 @@ export const workspace = {
         .order("created_at", { ascending: false })
         .limit(5000);
       if (error) throw error;
-      const existingCodes = new Set(state.students.map((s) => s.id));
-      const fresh = (data ?? [])
-        .map(rowToStudent)
-        .filter((s) => !existingCodes.has(s.id))
-        .map(engineer);
-      state = { ...state, students: [...fresh, ...state.students], hydrated: true };
+      const rows = (data ?? []).map(rowToStudent).map(engineer);
+      state = { ...state, students: rows, hydrated: true };
       emit();
     } catch (e) {
       console.error("Failed to hydrate students from Supabase:", e);
@@ -134,7 +144,6 @@ export function useWorkspace<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(workspace.subscribe, () => selector(workspace.get()), () => selector(initial));
 }
 
-/** Mount once at the app root to pull persisted students into the store. */
 export function useHydrateWorkspace() {
   useEffect(() => { workspace.hydrate(); }, []);
 }

@@ -89,7 +89,15 @@ function DataUpload() {
     setForm({ ...form, name: "" });
   };
 
-  const loadSample = () => workspace.setStudents(SAMPLE_STUDENTS.map(engineer));
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const loadSample = async () => {
+    setSampleLoading(true);
+    try {
+      await workspace.addStudents(SAMPLE_STUDENTS as Student[], "csv");
+    } finally {
+      setSampleLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -171,8 +179,8 @@ function DataUpload() {
                 <div className="text-sm font-medium">SAMPLE_500.csv</div>
                 <div className="text-xs text-muted-foreground">500 rows · 13 columns · seeded for reproducibility</div>
               </div>
-              <button onClick={loadSample} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                Load sample
+              <button onClick={loadSample} disabled={sampleLoading} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                {sampleLoading ? "Loading…" : students.length > 0 ? "Append sample" : "Load sample"}
               </button>
             </div>
           </Section>
@@ -194,7 +202,7 @@ function DataUpload() {
       </Section>
 
       <Section title="Data preview" description="First 50 records of the active dataset" actions={
-        <button onClick={() => workspace.reset()} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
+        <button onClick={() => { if (confirm("Delete ALL students from the database?")) workspace.clearAll(); }} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
           <Trash2 className="h-3.5 w-3.5" /> Reset
         </button>
       }>
