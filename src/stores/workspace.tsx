@@ -113,14 +113,16 @@ export const workspace = {
   },
   /** Remove only the seeded sample rows. Manual + CSV entries are preserved. */
   async clearMockData() {
-    // Local: drop sample rows
-    state = { ...state, students: state.students.filter((s) => s.source !== "sample") };
+    return workspace.deleteBySource("sample");
+  },
+  /** Delete all rows of a given source from local state + DB. */
+  async deleteBySource(source: RowSource) {
+    state = { ...state, students: state.students.filter((s) => s.source !== source) };
     emit();
-    // DB: delete only sample rows (RLS policy restricts deletes to source='sample')
     try {
-      const { error } = await supabase.from("students").delete().eq("source", "sample");
+      const { error } = await supabase.from("students").delete().eq("source", source);
       if (error) {
-        console.error("Failed to delete sample rows from DB:", error);
+        console.error(`Failed to delete ${source} rows from DB:`, error);
         return { error: error.message };
       }
       return { error: null };
