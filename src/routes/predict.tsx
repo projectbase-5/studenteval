@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, Section, Pill } from "@/components/ui-kit";
 import { WalkingLoader } from "@/components/WalkingLoader";
 import { ExplainPanel } from "@/components/ExplainPanel";
-import { SAMPLE_STUDENTS, type Student } from "@/data/students";
+import { useWorkspace } from "@/stores/workspace";
+import type { Student } from "@/data/students";
 import {
   Wand2, RefreshCw, TrendingUp, AlertTriangle, CheckCircle2,
   Search, Info, User2,
