@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/model/train")({
   component: TrainPage,
-  head: () => ({ meta: [{ title: "Model Training — ScholarSense" }] }),
 });
 
 const MODELS = [

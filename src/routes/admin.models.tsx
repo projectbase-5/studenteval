@@ -7,7 +7,6 @@ import { Cpu, Play, CheckCircle2, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/admin/models")({
   component: AdminModels,
-  head: () => ({ meta: [{ title: "Model Operations — ScholarSense" }] }),
 });
 
 const ALGOS: ModelVersion["algorithm"][] = ["Random Forest", "Gradient Boosting", "Linear Regression", "Decision Tree"];

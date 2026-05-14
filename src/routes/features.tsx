@@ -7,7 +7,6 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 
 export const Route = createFileRoute("/features")({
   component: FeaturesPage,
-  head: () => ({ meta: [{ title: "Feature Engineering — ScholarSense" }] }),
 });
 
 const FEATURES = [
