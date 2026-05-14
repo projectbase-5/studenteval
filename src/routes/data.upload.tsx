@@ -202,7 +202,7 @@ function DataUpload() {
       </Section>
 
       <Section title="Data preview" description="First 50 records of the active dataset" actions={
-        <button onClick={() => { if (confirm("Delete ALL students from the database?")) workspace.clearAll(); }} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
+        <button onClick={() => { if (confirm("Clear the current view? (Database records are preserved.)")) workspace.clearAll(); }} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
           <Trash2 className="h-3.5 w-3.5" /> Reset
         </button>
       }>
