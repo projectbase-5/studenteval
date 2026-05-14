@@ -2,6 +2,9 @@ import { useSyncExternalStore, useEffect } from "react";
 import { engineer, type EngineeredStudent, type Student } from "@/data/students";
 import { supabase } from "@/integrations/supabase/client";
 
+export type RowSource = "manual" | "csv" | "sample";
+export type StoredStudent = EngineeredStudent & { source?: RowSource };
+
 type Pipeline = {
   loaded: boolean;
   cleaned: boolean;
