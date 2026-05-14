@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, Section, Pill } from "@/components/ui-kit";
 import { WalkingLoader } from "@/components/WalkingLoader";
 import { ExplainPanel } from "@/components/ExplainPanel";
@@ -105,6 +105,24 @@ function PredictPage() {
   const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
   const [result, setResult] = useState<{ inputs: Inputs; score: number } | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof Inputs, string>>>({});
+  const resultRef = useRef<HTMLDivElement | null>(null);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll the loader / result into view as the flow progresses.
+  useEffect(() => {
+    if (phase === "loading" && loaderRef.current) {
+      loaderRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (phase === "done" && resultRef.current) {
+      // Small delay so the DOM is painted before we measure.
+      const t = setTimeout(() => {
+        const el = resultRef.current!;
+        const top = el.getBoundingClientRect().top + window.scrollY - 72; // offset for sticky header
+        window.scrollTo({ top, behavior: "smooth" });
+      }, 60);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
