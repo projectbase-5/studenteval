@@ -183,6 +183,7 @@ export function WorkspaceShell() {
   if (loc.pathname === "/") return <Outlet />;
   return (
     <SidebarProvider>
+      <RouteProgress />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
