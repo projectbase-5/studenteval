@@ -9,6 +9,7 @@ import {
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
+import { useHydrateWorkspace } from "@/stores/workspace";
 
 const NAV: { label: string; items: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
   {
@@ -159,6 +160,7 @@ function Topbar() {
 
 export function WorkspaceShell() {
   const loc = useLocation();
+  useHydrateWorkspace();
   // Landing page renders without the sidebar shell.
   if (loc.pathname === "/") return <Outlet />;
   return (
