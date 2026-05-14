@@ -9,6 +9,7 @@ import {
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
+import { useHydrateWorkspace } from "@/stores/workspace";
 
 const NAV: { label: string; items: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
   {
@@ -134,6 +135,24 @@ function ThemeToggle() {
   );
 }
 
+function RouteProgress() {
+  const loc = useLocation();
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 350);
+    return () => clearTimeout(t);
+  }, [loc.pathname]);
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none fixed left-0 top-0 z-50 h-0.5 bg-primary transition-all duration-300 ${
+        visible ? "w-full opacity-100" : "w-0 opacity-0"
+      }`}
+    />
+  );
+}
+
 function Topbar() {
   const loc = useLocation();
   const title = TITLES[loc.pathname] ?? "ScholarSense";
@@ -159,10 +178,12 @@ function Topbar() {
 
 export function WorkspaceShell() {
   const loc = useLocation();
+  useHydrateWorkspace();
   // Landing page renders without the sidebar shell.
   if (loc.pathname === "/") return <Outlet />;
   return (
     <SidebarProvider>
+      <RouteProgress />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
