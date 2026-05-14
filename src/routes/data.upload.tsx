@@ -21,6 +21,7 @@ const COLUMNS = [
 function DataUpload() {
   const students = useWorkspace((s) => s.students);
   const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvSuccess, setCsvSuccess] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "", gender: "M", class: "CSE-A", semester: 4,
     study_hours: 4, attendance: 85, sleep_hours: 7, assignments_completed: 9,
@@ -28,7 +29,7 @@ function DataUpload() {
   });
 
   const numCols = ["study_hours","attendance","sleep_hours","assignments_completed","previous_marks","internet_usage","final_score","semester"];
-  const stats = numCols.map((c) => {
+  const stats = students.length === 0 ? [] : numCols.map((c) => {
     const vals = students.map((s) => Number((s as any)[c])).filter(Number.isFinite);
     const sum = vals.reduce((a, b) => a + b, 0);
     const mean = sum / (vals.length || 1);
