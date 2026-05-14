@@ -2,6 +2,9 @@ import { useSyncExternalStore, useEffect } from "react";
 import { engineer, type EngineeredStudent, type Student } from "@/data/students";
 import { supabase } from "@/integrations/supabase/client";
 
+export type RowSource = "manual" | "csv" | "sample";
+export type StoredStudent = EngineeredStudent & { source?: RowSource };
+
 type Pipeline = {
   loaded: boolean;
   cleaned: boolean;
@@ -11,7 +14,7 @@ type Pipeline = {
 };
 
 type State = {
-  students: EngineeredStudent[];
+  students: StoredStudent[];
   pipeline: Pipeline;
   hydrated: boolean;
 };
@@ -52,7 +55,7 @@ function rowToStudent(r: any): Student {
   };
 }
 
-function studentToRow(s: Student, source: "manual" | "csv") {
+function studentToRow(s: Student, source: RowSource) {
   return {
     student_code: s.id,
     name: s.name,
@@ -77,17 +80,17 @@ export const workspace = {
     state = { ...state, pipeline: { ...state.pipeline, ...p } };
     emit();
   },
-  setStudents(students: EngineeredStudent[]) {
+  setStudents(students: StoredStudent[]) {
     state = { ...state, students };
     emit();
   },
   /** Append new students locally + persist to Supabase. */
-  async addStudents(rows: Student[], source: "manual" | "csv" = "manual") {
+  async addStudents(rows: Student[], source: RowSource = "manual") {
     const existingCodes = new Set(state.students.map((s) => s.id));
     const fresh = rows.filter((r) => !existingCodes.has(r.id));
     if (!fresh.length) return { inserted: 0, error: null as string | null };
     // Optimistic local append
-    const engineered = fresh.map(engineer);
+    const engineered: StoredStudent[] = fresh.map((s) => ({ ...engineer(s), source }));
     state = { ...state, students: [...engineered, ...state.students] };
     emit();
     try {
@@ -108,10 +111,23 @@ export const workspace = {
       return { inserted: 0, error: e?.message ?? "Insert failed" };
     }
   },
-  /** Clear local view only. Database rows are not deleted (no public delete access). */
-  async clearAll() {
-    state = { ...state, students: [], hydrated: false };
+  /** Remove only the seeded sample rows. Manual + CSV entries are preserved. */
+  async clearMockData() {
+    // Local: drop sample rows
+    state = { ...state, students: state.students.filter((s) => s.source !== "sample") };
     emit();
+    // DB: delete only sample rows (RLS policy restricts deletes to source='sample')
+    try {
+      const { error } = await supabase.from("students").delete().eq("source", "sample");
+      if (error) {
+        console.error("Failed to delete sample rows from DB:", error);
+        return { error: error.message };
+      }
+      return { error: null };
+    } catch (e: any) {
+      console.error(e);
+      return { error: e?.message ?? "Delete failed" };
+    }
   },
   async hydrate(force = false) {
     if (state.hydrated && !force) return;
@@ -122,7 +138,10 @@ export const workspace = {
         .order("created_at", { ascending: false })
         .limit(5000);
       if (error) throw error;
-      const rows = (data ?? []).map(rowToStudent).map(engineer);
+      const rows: StoredStudent[] = (data ?? []).map((r: any) => ({
+        ...engineer(rowToStudent(r)),
+        source: (["manual", "csv", "sample"].includes(r.source) ? r.source : "manual") as RowSource,
+      }));
       state = { ...state, students: rows, hydrated: true };
       emit();
     } catch (e) {

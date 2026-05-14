@@ -21,6 +21,7 @@ const COLUMNS = [
 function DataUpload() {
   const students = useWorkspace((s) => s.students);
   const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvSuccess, setCsvSuccess] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "", gender: "M", class: "CSE-A", semester: 4,
     study_hours: 4, attendance: 85, sleep_hours: 7, assignments_completed: 9,
@@ -28,7 +29,7 @@ function DataUpload() {
   });
 
   const numCols = ["study_hours","attendance","sleep_hours","assignments_completed","previous_marks","internet_usage","final_score","semester"];
-  const stats = numCols.map((c) => {
+  const stats = students.length === 0 ? [] : numCols.map((c) => {
     const vals = students.map((s) => Number((s as any)[c])).filter(Number.isFinite);
     const sum = vals.reduce((a, b) => a + b, 0);
     const mean = sum / (vals.length || 1);
@@ -37,11 +38,15 @@ function DataUpload() {
 
   const handleCsv = (file: File) => {
     setCsvError(null);
+    setCsvSuccess(null);
     Papa.parse<Record<string, string>>(file, {
       header: true, skipEmptyLines: true,
-      complete: (res) => {
+      complete: async (res) => {
         try {
           const baseIdx = students.length;
+          const headers = res.meta.fields ?? [];
+          const expected = ["name","attendance","study_hours","previous_marks","final_score"];
+          const missingCols = expected.filter((c) => !headers.includes(c));
           const rows: Student[] = res.data.map((r, i) => ({
             id: r.id || `UPL${Date.now().toString(36)}${String(baseIdx + i + 1).padStart(4, "0")}`,
             name: r.name || `Student ${i + 1}`,
@@ -58,8 +63,16 @@ function DataUpload() {
             final_score: Number(r.final_score) || 0,
           }));
           if (!rows.length) throw new Error("CSV had no rows.");
-          // Append to existing dataset (keeps mock + previously added rows)
-          workspace.addStudents(rows, "csv");
+          if (missingCols.length === expected.length) {
+            throw new Error(`CSV columns don't match expected schema. Expected at least one of: ${expected.join(", ")}. Got: ${headers.join(", ") || "(no headers)"}.`);
+          }
+          const result = await workspace.addStudents(rows, "csv");
+          if (result.error) {
+            setCsvError(`Saved 0 / ${rows.length} rows — ${result.error}`);
+          } else {
+            const warn = missingCols.length > 0 ? ` (warning: missing columns ${missingCols.join(", ")} — those values defaulted to 0)` : "";
+            setCsvSuccess(`Imported ${result.inserted} students${warn}.`);
+          }
         } catch (e) {
           setCsvError((e as Error).message);
         }
@@ -68,7 +81,7 @@ function DataUpload() {
     });
   };
 
-  const addManual = () => {
+  const addManual = async () => {
     if (!form.name.trim()) return;
     const s: Student = {
       id: `MAN${Date.now().toString(36)}${String(students.length + 1).padStart(4, "0")}`,
@@ -85,18 +98,35 @@ function DataUpload() {
       participation: form.participation as Student["participation"],
       final_score: Number(form.final_score),
     };
-    workspace.addStudents([s], "manual");
-    setForm({ ...form, name: "" });
+    const result = await workspace.addStudents([s], "manual");
+    if (result.error) {
+      setCsvError(`Could not save: ${result.error}`);
+    } else {
+      setCsvError(null);
+      setCsvSuccess(`Added ${form.name.trim()}.`);
+      setForm({ ...form, name: "" });
+    }
   };
 
   const [sampleLoading, setSampleLoading] = useState(false);
   const loadSample = async () => {
     setSampleLoading(true);
+    setCsvError(null);
+    setCsvSuccess(null);
     try {
-      await workspace.addStudents(SAMPLE_STUDENTS as Student[], "csv");
+      const result = await workspace.addStudents(SAMPLE_STUDENTS as Student[], "sample");
+      if (result.error) setCsvError(`Sample load failed: ${result.error}`);
+      else setCsvSuccess(`Loaded ${result.inserted} sample students.`);
     } finally {
       setSampleLoading(false);
     }
+  };
+
+  const removeMockData = async () => {
+    if (!confirm("Remove the seeded sample data only? Manual and CSV-uploaded entries will be kept.")) return;
+    const result = await workspace.clearMockData();
+    if (result.error) setCsvError(`Could not remove sample data: ${result.error}`);
+    else setCsvSuccess("Sample data removed. Manual and CSV entries are preserved.");
   };
 
   return (
@@ -130,6 +160,7 @@ function DataUpload() {
                 onChange={(e) => e.target.files?.[0] && handleCsv(e.target.files[0])} />
             </label>
             {csvError && <div className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{csvError}</div>}
+            {csvSuccess && !csvError && <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">{csvSuccess}</div>}
           </Section>
         </TabsContent>
 
@@ -185,7 +216,7 @@ function DataUpload() {
             </div>
             <div className="mt-3 flex justify-end">
               <button
-                onClick={() => { if (confirm("Remove all mock/sample data from the current view?")) workspace.clearAll(); }}
+                onClick={removeMockData}
                 className="inline-flex items-center gap-1.5 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/20"
               >
                 <Trash2 className="h-4 w-4" /> Remove all the mock data
@@ -210,8 +241,8 @@ function DataUpload() {
       </Section>
 
       <Section title="Data preview" description="First 50 records of the active dataset" actions={
-        <button onClick={() => { if (confirm("Clear the current view? (Database records are preserved.)")) workspace.clearAll(); }} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
-          <Trash2 className="h-3.5 w-3.5" /> Reset
+        <button onClick={removeMockData} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent">
+          <Trash2 className="h-3.5 w-3.5" /> Remove sample
         </button>
       }>
         <DataTable
