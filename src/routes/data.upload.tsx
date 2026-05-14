@@ -89,7 +89,15 @@ function DataUpload() {
     setForm({ ...form, name: "" });
   };
 
-  const loadSample = () => workspace.setStudents(SAMPLE_STUDENTS.map(engineer));
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const loadSample = async () => {
+    setSampleLoading(true);
+    try {
+      await workspace.addStudents(SAMPLE_STUDENTS as Student[], "csv");
+    } finally {
+      setSampleLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
