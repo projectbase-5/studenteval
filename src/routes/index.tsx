@@ -52,8 +52,14 @@ function Landing() {
       </header>
 
       {/* hero */}
-      <section className="border-b border-border">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
+      <section className="relative overflow-hidden border-b border-border">
+        {/* Spline 3D background */}
+        <div className="pointer-events-none absolute inset-0 -z-0 opacity-60">
+          {/* @ts-expect-error - custom element */}
+          <spline-viewer url="https://prod.spline.design/Dz6o7LVZzvTInuOJ/scene.splinecode" style={{ width: "100%", height: "100%" }} />
+        </div>
+        <div className="absolute inset-0 -z-0 bg-gradient-to-b from-background/40 via-background/60 to-background" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-success" /> v1.0 — Production
@@ -189,6 +195,40 @@ function Landing() {
           <Link to="/dashboard" className="mt-8 inline-flex items-center gap-1.5 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
             Launch Dashboard <ArrowRight className="h-4 w-4" />
           </Link>
+        </div>
+      </section>
+
+      {/* pages guide */}
+      <section id="pages" className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="mb-8 max-w-2xl">
+            <div className="text-xs font-semibold uppercase tracking-wider text-primary">Inside the app</div>
+            <h2 className="mt-1 text-2xl font-semibold md:text-3xl">What every page does</h2>
+            <p className="mt-2 text-sm text-muted-foreground">A quick tour of the 10 workspaces that make up ScholarSense.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              { group: "Overview", page: "Dashboard", to: "/dashboard", body: "Your command center. KPI cards (total students, average score, pass rate, at-risk count), distribution charts and quick links into every other workspace. The first place you land after login." },
+              { group: "Data Pipeline", page: "Data Collection", to: "/data/upload", body: "Bring data in. Upload CSV files of student records, enter rows manually, or load the bundled mock dataset to explore the platform. Includes a password-protected delete tool to wipe CSV or manual data." },
+              { group: "Data Pipeline", page: "Cleaning", to: "/data/clean", body: "Preprocess raw data. Detect missing values, drop duplicates, fix outliers, normalize numeric columns and encode categoricals so the dataset is model-ready." },
+              { group: "Data Pipeline", page: "EDA", to: "/eda", body: "Exploratory Data Analysis. Histograms, correlation heatmaps, box plots and group comparisons that reveal patterns between attendance, study habits and final grades." },
+              { group: "Data Pipeline", page: "Feature Engineering", to: "/features", body: "Turn raw columns into model signals. Create derived features (study-to-failure ratio, attendance bands), select the most predictive variables and preview their impact." },
+              { group: "Modeling", page: "Evaluate", to: "/model/evaluate", body: "Inspect how the trained model performs. Accuracy, F1, R², MAE, confusion matrix, ROC curve and per-feature importance — everything you need to trust the predictions." },
+              { group: "Modeling", page: "Predict", to: "/predict", body: "Single-student prediction. Enter one student's attributes (attendance, study hours, prior grades) and instantly see predicted final score, pass/fail and an explanation of which features drove the result." },
+              { group: "Modeling", page: "Batch Predict", to: "/predict/batch", body: "Score an entire class at once. Pick a batch (e.g. CSE-A, IT-A) and get predictions for every student in that group — useful for end-of-term reviews." },
+              { group: "Administration", page: "Model Operations", to: "/admin/models", body: "Manage model versions. View training history, switch the active model, compare metrics across versions and archive older ones." },
+              { group: "Output", page: "Reports", to: "/reports", body: "Faculty-ready output. Generate PDF reports per class with at-risk lists, top performers and recommended interventions — ready to share with administration." },
+            ].map((p) => (
+              <Link key={p.page} to={p.to} className="group rounded-lg border border-border bg-card p-5 transition hover:border-primary/40 hover:bg-accent/30">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-primary">{p.group}</div>
+                <div className="mt-1 flex items-center gap-1.5 text-base font-semibold">
+                  {p.page}
+                  <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100" />
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{p.body}</p>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
