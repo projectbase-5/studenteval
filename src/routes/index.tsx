@@ -52,8 +52,14 @@ function Landing() {
       </header>
 
       {/* hero */}
-      <section className="border-b border-border">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
+      <section className="relative overflow-hidden border-b border-border">
+        {/* Spline 3D background */}
+        <div className="pointer-events-none absolute inset-0 -z-0 opacity-60">
+          {/* @ts-expect-error - custom element */}
+          <spline-viewer url="https://prod.spline.design/Dz6o7LVZzvTInuOJ/scene.splinecode" style={{ width: "100%", height: "100%" }} />
+        </div>
+        <div className="absolute inset-0 -z-0 bg-gradient-to-b from-background/40 via-background/60 to-background" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-success" /> v1.0 — Production
