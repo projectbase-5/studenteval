@@ -19,7 +19,32 @@ const tooltipStyle = { background: "var(--card)", border: "1px solid var(--borde
 
 function Dashboard() {
   const students = useWorkspace((s) => s.students);
-  const stats = summary(students)!;
+  const hydrated = useWorkspace((s) => s.hydrated);
+  const stats = summary(students);
+
+  if (!stats) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Dashboard"
+          description="Snapshot of student outcomes, model health, and attention areas across the current cohort."
+        />
+        <Section title={hydrated ? "No data yet" : "Loading…"} description={hydrated ? "Upload a CSV, add students manually, or load the sample dataset to see your dashboard." : "Fetching the latest cohort data."}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {hydrated ? "Once you've added student records, charts and KPIs will populate here." : "Please wait while we hydrate your workspace."}
+            </p>
+            {hydrated && (
+              <Link to="/data/upload" className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Add data
+              </Link>
+            )}
+          </div>
+        </Section>
+      </div>
+    );
+  }
+
   const dist = histogram(students.map((s) => s.final_score), 10, 0, 100);
   const scatter = students.map((s) => ({ x: s.attendance, y: s.final_score, name: s.name }));
   const atRisk = topN(students.filter((s) => s.risk_level === "High"), 8, (s) => -s.final_score);
