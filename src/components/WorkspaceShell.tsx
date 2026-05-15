@@ -28,7 +28,6 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Comp
   {
     label: "Modeling",
     items: [
-      { to: "/model/train", label: "Train Model", icon: Cpu },
       { to: "/model/evaluate", label: "Evaluate", icon: Gauge },
       { to: "/predict", label: "Predict", icon: Wand2 },
       { to: "/predict/batch", label: "Batch Predict", icon: FileSpreadsheet },
