@@ -45,7 +45,6 @@ function riskOf(s: EngineeredStudent, score: number): "Low" | "Medium" | "High" 
 function BatchPredict() {
   const students = useWorkspace((s) => s.students);
   const [klass, setKlass] = useState<string>("");
-  const [semester, setSemester] = useState<string>("All");
   const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
   const [results, setResults] = useState<Prediction[] | null>(null);
   const loaderRef = useRef<HTMLDivElement | null>(null);
@@ -55,10 +54,6 @@ function BatchPredict() {
     () => Array.from(new Set(students.map((s) => s.class))).sort(),
     [students],
   );
-  const semesters = useMemo(
-    () => Array.from(new Set(students.map((s) => s.semester))).sort((a, b) => a - b),
-    [students],
-  );
 
   // default class
   useEffect(() => {
@@ -66,11 +61,8 @@ function BatchPredict() {
   }, [classes, klass]);
 
   const batch = useMemo(
-    () =>
-      students.filter(
-        (s) => s.class === klass && (semester === "All" || s.semester === Number(semester)),
-      ),
-    [students, klass, semester],
+    () => students.filter((s) => s.class === klass),
+    [students, klass],
   );
 
   // Auto-scroll like the Predict page.
@@ -158,7 +150,7 @@ function BatchPredict() {
     <div className="space-y-6">
       <PageHeader
         title="Batch Predictions"
-        description="Pick a batch (class + semester), run the model on every student in it, and see who is predicted to pass or fail using their historical data."
+        description="Pick a batch (class) and run the model on every student in it. No individual student selection — predictions run on the entire batch."
         actions={
           <button
             onClick={reset}
@@ -169,27 +161,17 @@ function BatchPredict() {
         }
       />
 
-      <Section title="Select a batch" description="Choose a class and (optionally) a semester to run predictions on.">
-        <div className="grid gap-3 sm:grid-cols-3">
+      <Section title="Select a batch" description="Choose a class (e.g. CSE-A, IT-A) to run predictions on all of its students.">
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-xs">
-            <span className="text-muted-foreground">Class</span>
+            <span className="text-muted-foreground">Batch / Class</span>
             <select
               value={klass}
               onChange={(e) => { setKlass(e.target.value); reset(); }}
               className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
             >
+              {classes.length === 0 && <option value="">No batches available</option>}
               {classes.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
-          <label className="block text-xs">
-            <span className="text-muted-foreground">Semester</span>
-            <select
-              value={semester}
-              onChange={(e) => { setSemester(e.target.value); reset(); }}
-              className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
-            >
-              <option value="All">All semesters</option>
-              {semesters.map((s) => <option key={s} value={s}>Semester {s}</option>)}
             </select>
           </label>
           <div className="flex items-end">
@@ -228,7 +210,7 @@ function BatchPredict() {
             <Kpi label="Predicted pass" value={summary.pass} sub={`${summary.passRate}%`} />
             <Kpi label="Predicted fail" value={summary.fail} />
             <Kpi label="Avg score" value={summary.avg} sub="/ 100" />
-            <Kpi label="Batch" value={klass} sub={semester === "All" ? "all sems" : `Sem ${semester}`} />
+            <Kpi label="Batch" value={klass} sub="entire class" />
           </div>
 
           {/* Pass / fail bar */}

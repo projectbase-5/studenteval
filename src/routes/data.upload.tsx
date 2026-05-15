@@ -124,7 +124,9 @@ function DataUpload() {
   };
 
   const removeMockData = async () => {
-    if (!confirm("Remove the seeded sample data only? Manual and CSV-uploaded entries will be kept.")) return;
+    const pw = prompt("Enter the admin password to remove the seeded sample data:");
+    if (pw === null) return;
+    if (pw !== "112212") { setCsvError("Incorrect password. Sample data was not removed."); return; }
     const result = await workspace.clearMockData();
     if (result.error) setCsvError(`Could not remove sample data: ${result.error}`);
     else setCsvSuccess("Sample data removed. Manual and CSV entries are preserved.");
@@ -132,13 +134,18 @@ function DataUpload() {
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<"csv" | "manual" | null>(null);
+  const [password, setPassword] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
   const handleDeleteBySource = async (source: "csv" | "manual") => {
+    if (password !== "112212") { setPwError("Incorrect password."); return; }
+    setPwError(null);
     setDeleting(source);
     setCsvError(null);
     setCsvSuccess(null);
     const result = await workspace.deleteBySource(source);
     setDeleting(null);
     setDeleteOpen(false);
+    setPassword("");
     if (result.error) setCsvError(`Could not delete ${source} data: ${result.error}`);
     else setCsvSuccess(`${source === "csv" ? "CSV" : "Manual"} data deleted.`);
   };
@@ -243,14 +250,25 @@ function DataUpload() {
               </button>
             </div>
 
-            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <Dialog open={deleteOpen} onOpenChange={(o) => { setDeleteOpen(o); if (!o) { setPassword(""); setPwError(null); } }}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Delete student data</DialogTitle>
                   <DialogDescription>
-                    Choose which set of records to permanently delete. This cannot be undone.
+                    Enter the admin password, then choose which set of records to permanently delete. This cannot be undone.
                   </DialogDescription>
                 </DialogHeader>
+                <div className="space-y-2 py-2">
+                  <label className="block text-xs text-muted-foreground">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setPwError(null); }}
+                    placeholder="Enter admin password"
+                    className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
+                  />
+                  {pwError && <div className="text-xs text-danger">{pwError}</div>}
+                </div>
                 <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                   <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={!!deleting}>
                     Cancel
