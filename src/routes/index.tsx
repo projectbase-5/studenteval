@@ -40,6 +40,7 @@ const FEATURES = [
 ];
 
 function Landing() {
+  useSplineViewer();
   return (
     <div className="min-h-screen bg-background">
       {/* nav */}
