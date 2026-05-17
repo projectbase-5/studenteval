@@ -365,7 +365,7 @@ function PredictResult({ inputs, score }: { inputs: Inputs; score: number }) {
       </Section>
 
       <Section title="Why this prediction? (Explainability)">
-        <ExplainPanel inputs={inputs} />
+        <PredictionInsights inputs={inputs} />
       </Section>
 
       {r === "High" && (
