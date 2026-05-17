@@ -21,9 +21,7 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Comp
     label: "Data Pipeline",
     items: [
       { to: "/data/upload", label: "Data Collection", icon: Upload },
-      { to: "/data/clean", label: "Cleaning", icon: Sparkles },
       { to: "/eda", label: "EDA", icon: BarChart3 },
-      { to: "/features", label: "Feature Engineering", icon: Layers },
     ],
   },
   {
