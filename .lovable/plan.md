@@ -1,65 +1,42 @@
-## Goals
+## 1. Hide "Cleaning" and "Feature Engineering" from sidebar
 
-1. "Remove all the mock data" must only remove the 500 seeded sample rows — never CSV-imported or manually entered students.
-2. When the student list is empty, the **Manual entry** and **Sample dataset** tabs must respond to clicks.
-3. CSV upload should actually surface what happens — today rows can silently fail to persist and the user has no feedback.
+In `src/components/WorkspaceShell.tsx`, remove the `/data/clean` and `/features` entries from the `NAV` array (Data Pipeline group keeps only Data Collection + EDA). Route files stay intact so the pages remain reachable by direct URL.
 
----
+## 2. Auto-close mobile/tablet sidebar on navigation
 
-## 1. Tag rows by origin so we can selectively clear
+In `WorkspaceShell.tsx`, inside `AppSidebar`'s menu rendering, read `setOpenMobile` and `isMobile` from `useSidebar()` and call `setOpenMobile(false)` in each `<Link>`'s `onClick`. This collapses the sheet immediately when a nav item is tapped on phone/tablet widths.
 
-Today `addStudents` accepts a `source` of `"manual" | "csv"`, and the sample-load button passes `"csv"` — so sample rows look identical to user-uploaded CSV rows. We will:
+## 3. Fix the "Not Found" preview on `/` and other routes
 
-- Extend the `source` union to `"manual" | "csv" | "sample"` in `src/stores/workspace.tsx` (and the DB column already accepts free text).
-- In `src/routes/data.upload.tsx`, change the sample-load handler to call `workspace.addStudents(SAMPLE_STUDENTS, "sample")`.
-- Track `source` on the engineered student in memory (small extension to the `EngineeredStudent` type / `engineer()` pass-through) so the local state knows which rows are sample vs. user data.
+Root cause investigation: the preview screenshot shows `/data/upload` rendering only "Not Found" plain text — that's TanStack Router's `defaultNotFoundComponent` fallback, which means the route tree isn't matching the URL. Two likely culprits:
 
-## 2. Rewrite `clearAll` → `clearMockData`
+a. `src/routeTree.gen.ts` is stale (the SPA migration deleted/regenerated it but it may not include all current routes).
+b. The `<spline-viewer>` script in `index.html` is throwing at module evaluation (`Cannot read properties of undefined (reading 'position')`), which can break first paint in some browsers.
 
-- Rename `workspace.clearAll()` to `workspace.clearMockData()`.
-- It will:
-  - Filter local `state.students` to keep everything where `source !== "sample"`.
-  - Delete only the sample rows from Supabase: `supabase.from("students").delete().eq("source", "sample")`.
-- This requires a new RLS DELETE policy scoped to sample rows only, added via `supabase--migration`:
-  ```sql
-  CREATE POLICY "Public can delete sample students"
-    ON public.students FOR DELETE
-    TO public
-    USING (source = 'sample');
-  ```
-  Manual / CSV rows remain undeletable from the client, preserving the earlier security fix.
-- Update the button label/confirm copy in `data.upload.tsx` to "Remove sample data — your manual and CSV entries will be kept".
-- Update the secondary "Reset" button in the Data preview section to use the same scoped clear (or remove it to avoid confusion).
+Fixes:
 
-## 3. Fix unresponsive tabs when student count is 0
+- Delete `src/routeTree.gen.ts` so the TanStack Router Vite plugin regenerates it cleanly on next dev start.
+- Remove the global `<script src="…spline-viewer.js">` from `index.html` and instead inject it lazily only on the landing route (`src/routes/index.tsx`) via a `useEffect` that appends the script tag once. This prevents the Spline runtime crash from affecting the rest of the SPA.
+- Verify `src/routes/index.tsx` exists with `createFileRoute("/")` — if missing, recreate a minimal version.
 
-Reproduce first, then patch. Likely cause: with `students = []`, the column-stats block computes `Math.min(...[])` = `Infinity` and `Math.max(...[])` = `-Infinity`, which the `DataTable` happily renders, but the empty `students.slice(0, 50)` table below may throw inside a render path that unmounts the Tabs subtree on the first click. Plan:
+## 4. PWA install support (manifest-only, no service worker)
 
-- Reproduce in the preview with an empty dataset and capture the console error.
-- Guard the stats / preview blocks: when `students.length === 0`, render an empty-state card instead of computing stats or rendering `DataTable`. This keeps the Tabs component mounted and interactive.
-- Verify all three tabs switch correctly with 0, 1, and 500 rows.
+Per Lovable guidance, do **not** add `vite-plugin-pwa` / service workers (they break the preview iframe and cache stale builds). The existing `public/manifest.json` already enables Add-to-Home-Screen on Android and iOS. Polish  
+  
+show the install button of the pwa on the top right corner so that user can download the site with that :
 
-## 4. CSV upload — make persistence visible
+- Add a 192×192 icon (`public/icon-192.png`) alongside the existing 512 for better Android compatibility, and reference both in `manifest.json`.
+- Add `<link rel="apple-touch-icon" sizes="180x180" …>` and `<meta name="mobile-web-app-capable" content="yes">` to `index.html` for iOS install polish.
+- Change manifest `start_url` from `/dashboard` to `/` so installed PWAs land on the marketing page (then the user clicks Dashboard) — or keep `/dashboard` if user prefers; will default to `/dashboard` for app-like feel.
+- Add a small "Install app" button in the landing hero that listens for `beforeinstallprompt` and triggers `prompt()` on Android/desktop Chrome. iOS Safari has no API — show a one-line hint "Tap Share → Add to Home Screen" when on iOS.
 
-`handleCsv` parses fine, but `addStudents` is fire-and-forget: a Supabase insert error silently rolls back the optimistic append and the user just sees "nothing happened". Plan:
+Note: full offline support would require a service worker, which we're intentionally skipping. Installability + standalone display works on both Android and iOS with just the manifest.
 
-- `await` the `addStudents` result inside `handleCsv` and `addManual`.
-- On `{ inserted, error }`:
-  - Success → show a sonner toast `Imported N students`.
-  - Failure → show an inline error banner with the Supabase message (reuse the existing `csvError` UI).
-- When the CSV file's first row is the headers but column names don't match (`name`, `class`, `attendance`, …), every numeric becomes `0` — we already silently coerce. Add a one-line detection: if **all** rows produce `final_score === 0` and `attendance === 0`, surface a "CSV columns don't match expected schema" warning so the user knows why their numbers are missing.
-- Keep the optimistic append, but on failure leave the rolled-back state and the visible error banner so the discrepancy is obvious.
+## Files touched
 
----
-
-## Technical details
-
-Files touched:
-- `src/stores/workspace.tsx` — extend `source` union, propagate to engineered student, replace `clearAll` with `clearMockData`.
-- `src/routes/data.upload.tsx` — pass `"sample"` for the sample loader, await results + toasts, empty-state guards, updated button copy.
-- New migration adding the scoped `DELETE` policy on `public.students`.
-
-Out of scope:
-- Authentication / user-scoped ownership of rows (still public read+insert).
-- Schema-mapping UI for arbitrary CSV column names — we only warn when the standard columns are missing.
-- Deduplication of re-uploaded CSVs beyond the existing `student_code` check.
+- `src/components/WorkspaceShell.tsx` — trim nav + mobile auto-close
+- `src/routeTree.gen.ts` — delete (auto-regenerates)
+- `index.html` — drop global Spline script, add iOS PWA meta
+- `src/routes/index.tsx` — lazy-load Spline viewer; add Install button
+- `public/manifest.json` — add 192 icon entry
+- `public/icon-192.png` — new asset

@@ -1,12 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   GraduationCap, ArrowRight, Database, Sparkles, BarChart3, Layers,
   Cpu, Gauge, Wand2, FileText, CheckCircle2,
 } from "lucide-react";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 export const Route = createFileRoute("/")({
   component: Landing,
 });
+
+function useSplineViewer() {
+  useEffect(() => {
+    const id = "spline-viewer-script";
+    if (document.getElementById(id)) return;
+    const s = document.createElement("script");
+    s.id = id;
+    s.type = "module";
+    s.src = "https://unpkg.com/@splinetool/viewer@1.12.93/build/spline-viewer.js";
+    document.head.appendChild(s);
+  }, []);
+}
 
 const STEPS = [
   { icon: Database, label: "Data Collection" },
@@ -26,6 +40,7 @@ const FEATURES = [
 ];
 
 function Landing() {
+  useSplineViewer();
   return (
     <div className="min-h-screen bg-background">
       {/* nav */}
@@ -45,9 +60,12 @@ function Landing() {
             <a href="#workflow" className="hover:text-foreground">Workflow</a>
             <a href="#stats" className="hover:text-foreground">Outcomes</a>
           </nav>
-          <Link to="/dashboard" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-            Launch Dashboard <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <InstallPWAButton />
+            <Link to="/dashboard" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+              Launch Dashboard <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </header>
 

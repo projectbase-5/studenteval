@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
-  GraduationCap, LayoutDashboard, Upload, Sparkles, BarChart3, Layers,
-  Cpu, Gauge, Wand2, FileText, Moon, Sun, ChevronRight, FileSpreadsheet, Settings,
+  GraduationCap, LayoutDashboard, Upload, BarChart3,
+  Gauge, Wand2, FileText, Moon, Sun, ChevronRight, FileSpreadsheet, Settings, Download,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { useHydrateWorkspace } from "@/stores/workspace";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 const NAV: { label: string; items: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
   {
@@ -20,9 +21,7 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Comp
     label: "Data Pipeline",
     items: [
       { to: "/data/upload", label: "Data Collection", icon: Upload },
-      { to: "/data/clean", label: "Cleaning", icon: Sparkles },
       { to: "/eda", label: "EDA", icon: BarChart3 },
-      { to: "/features", label: "Feature Engineering", icon: Layers },
     ],
   },
   {
@@ -59,13 +58,14 @@ const TITLES: Record<string, string> = {
 
 function AppSidebar() {
   const loc = useLocation();
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
+  const closeOnMobile = () => { if (isMobile) setOpenMobile(false); };
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-2.5 px-2 py-2">
+        <Link to="/" onClick={closeOnMobile} className="flex items-center gap-2.5 px-2 py-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <GraduationCap className="h-4 w-4" />
           </div>
@@ -88,7 +88,7 @@ function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                        <Link to={item.to}>
+                        <Link to={item.to} onClick={closeOnMobile}>
                           <item.icon className="h-4 w-4" />
                           <span>{item.label}</span>
                         </Link>
@@ -169,6 +169,7 @@ function Topbar() {
         <span className="hidden rounded-md border border-border bg-secondary/60 px-2 py-1 text-xs text-muted-foreground md:inline-flex">
           Role: <span className="ml-1 font-medium text-foreground">Faculty</span>
         </span>
+        <InstallPWAButton />
         <ThemeToggle />
       </div>
     </header>
