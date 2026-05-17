@@ -4,7 +4,7 @@ import {
   GraduationCap, ArrowRight, Database, Sparkles, BarChart3, Layers,
   Cpu, Gauge, Wand2, FileText, CheckCircle2,
 } from "lucide-react";
-import { InstallPWAButton } from "@/components/InstallPWAButton";
+
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -61,7 +61,7 @@ function Landing() {
             <a href="#stats" className="hover:text-foreground">Outcomes</a>
           </nav>
           <div className="flex items-center gap-2">
-            <InstallPWAButton />
+            
             <Link to="/dashboard" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
               Launch Dashboard <ArrowRight className="h-3.5 w-3.5" />
             </Link>

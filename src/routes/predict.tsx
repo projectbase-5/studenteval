@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, Section, Pill } from "@/components/ui-kit";
 import { WalkingLoader } from "@/components/WalkingLoader";
-import { ExplainPanel } from "@/components/ExplainPanel";
+import { PredictionInsights } from "@/components/PredictionInsights";
 import { useWorkspace } from "@/stores/workspace";
 import type { Student } from "@/data/students";
 import {
@@ -365,7 +365,7 @@ function PredictResult({ inputs, score }: { inputs: Inputs; score: number }) {
       </Section>
 
       <Section title="Why this prediction? (Explainability)">
-        <ExplainPanel inputs={inputs} />
+        <PredictionInsights inputs={inputs} />
       </Section>
 
       {r === "High" && (

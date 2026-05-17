@@ -1,3 +1,5 @@
+// Shows which features pushed the predicted score up or down.
+// (renamed from ExplainPanel — the new name reads better in the Predict page)
 import { useEffect, useState } from "react";
 import { loadPredictor, type Predictor } from "@/lib/ml-data";
 import { explainPrediction, inputsToPredictorValues, FEATURE_LABELS } from "@/lib/explain";
@@ -8,7 +10,8 @@ export type ExplainInputs = {
   participation: "Low" | "Medium" | "High"; internet_usage: number;
 };
 
-export function ExplainPanel({ inputs }: { inputs: ExplainInputs }) {
+// renamed from ExplainPanel — "PredictionInsights" reads better in the predict screen
+export function PredictionInsights({ inputs }: { inputs: ExplainInputs }) {
   const [pred, setPred] = useState<Predictor | null>(null);
   useEffect(() => {
     loadPredictor().then(setPred).catch(() => setPred(null));
