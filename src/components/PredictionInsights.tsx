@@ -8,7 +8,8 @@ export type ExplainInputs = {
   participation: "Low" | "Medium" | "High"; internet_usage: number;
 };
 
-export function ExplainPanel({ inputs }: { inputs: ExplainInputs }) {
+// renamed from ExplainPanel — "PredictionInsights" reads better in the predict screen
+export function PredictionInsights({ inputs }: { inputs: ExplainInputs }) {
   const [pred, setPred] = useState<Predictor | null>(null);
   useEffect(() => {
     loadPredictor().then(setPred).catch(() => setPred(null));
