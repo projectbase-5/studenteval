@@ -4,7 +4,7 @@ import {
   GraduationCap, ArrowRight, Database, Sparkles, BarChart3, Layers,
   Cpu, Gauge, Wand2, FileText, CheckCircle2,
 } from "lucide-react";
-import { InstallPWAButton } from "@/components/InstallPWAButton";
+
 
 export const Route = createFileRoute("/")({
   component: Landing,
