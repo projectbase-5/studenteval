@@ -1,3 +1,6 @@
+// tiny pub/sub store for the student workspace.
+// started with zustand but it felt like overkill for ~5 pieces of state,
+// so I rolled a small useSyncExternalStore version. may refactor later.
 import { useSyncExternalStore, useEffect } from "react";
 import { engineer, type EngineeredStudent, type Student } from "@/data/students";
 import { supabase } from "@/integrations/supabase/client";

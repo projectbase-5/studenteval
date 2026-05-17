@@ -1,3 +1,5 @@
+// Main shell for the authenticated workspace (sidebar + topbar + content).
+// Landing page bypasses this — see the early return at the bottom.
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
   GraduationCap, LayoutDashboard, Upload, BarChart3,
