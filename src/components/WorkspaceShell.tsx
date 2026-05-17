@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
   GraduationCap, LayoutDashboard, Upload, BarChart3,
-  Gauge, Wand2, FileText, Moon, Sun, ChevronRight, FileSpreadsheet, Settings, Download,
+  Gauge, Wand2, FileText, Moon, Sun, ChevronRight, FileSpreadsheet, Settings,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
