@@ -58,13 +58,14 @@ const TITLES: Record<string, string> = {
 
 function AppSidebar() {
   const loc = useLocation();
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
+  const closeOnMobile = () => { if (isMobile) setOpenMobile(false); };
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-2.5 px-2 py-2">
+        <Link to="/" onClick={closeOnMobile} className="flex items-center gap-2.5 px-2 py-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <GraduationCap className="h-4 w-4" />
           </div>
@@ -87,7 +88,7 @@ function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                        <Link to={item.to}>
+                        <Link to={item.to} onClick={closeOnMobile}>
                           <item.icon className="h-4 w-4" />
                           <span>{item.label}</span>
                         </Link>
