@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
-  GraduationCap, LayoutDashboard, Upload, Sparkles, BarChart3, Layers,
-  Cpu, Gauge, Wand2, FileText, Moon, Sun, ChevronRight, FileSpreadsheet, Settings,
+  GraduationCap, LayoutDashboard, Upload, BarChart3,
+  Gauge, Wand2, FileText, Moon, Sun, ChevronRight, FileSpreadsheet, Settings, Download,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { useHydrateWorkspace } from "@/stores/workspace";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 const NAV: { label: string; items: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
   {
