@@ -1,3 +1,5 @@
+// Shows which features pushed the predicted score up or down.
+// (renamed from ExplainPanel — the new name reads better in the Predict page)
 import { useEffect, useState } from "react";
 import { loadPredictor, type Predictor } from "@/lib/ml-data";
 import { explainPrediction, inputsToPredictorValues, FEATURE_LABELS } from "@/lib/explain";
