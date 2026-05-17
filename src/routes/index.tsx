@@ -1,12 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   GraduationCap, ArrowRight, Database, Sparkles, BarChart3, Layers,
   Cpu, Gauge, Wand2, FileText, CheckCircle2,
 } from "lucide-react";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 export const Route = createFileRoute("/")({
   component: Landing,
 });
+
+function useSplineViewer() {
+  useEffect(() => {
+    const id = "spline-viewer-script";
+    if (document.getElementById(id)) return;
+    const s = document.createElement("script");
+    s.id = id;
+    s.type = "module";
+    s.src = "https://unpkg.com/@splinetool/viewer@1.12.93/build/spline-viewer.js";
+    document.head.appendChild(s);
+  }, []);
+}
 
 const STEPS = [
   { icon: Database, label: "Data Collection" },
