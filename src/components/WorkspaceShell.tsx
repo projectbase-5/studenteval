@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { useHydrateWorkspace } from "@/stores/workspace";
-import { InstallPWAButton } from "@/components/InstallPWAButton";
+
 
 const NAV: { label: string; items: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
   {
