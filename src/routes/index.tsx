@@ -1,13 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
-import {
-  GraduationCap, ArrowRight, Database, Sparkles, BarChart3, Layers,
-  Cpu, Gauge, Wand2, FileText, CheckCircle2,
-} from "lucide-react";
-
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
-  component: Landing,
+  component: AuthLanding,
 });
 
 function useSplineViewer() {
@@ -17,242 +15,211 @@ function useSplineViewer() {
     const s = document.createElement("script");
     s.id = id;
     s.type = "module";
-    s.src = "https://unpkg.com/@splinetool/viewer@1.12.93/build/spline-viewer.js";
+    s.src = "https://unpkg.com/@splinetool/viewer@1.12.94/build/spline-viewer.js";
     document.head.appendChild(s);
   }, []);
 }
 
-const STEPS = [
-  { icon: Database, label: "Data Collection" },
-  { icon: Sparkles, label: "Cleaning" },
-  { icon: BarChart3, label: "EDA" },
-  { icon: Layers, label: "Features" },
-  { icon: Cpu, label: "Train Model" },
-  { icon: Gauge, label: "Evaluate" },
-  { icon: Wand2, label: "Predict" },
-];
+type Mode = "signin" | "signup" | "forgot";
 
-const FEATURES = [
-  { title: "Trained on real academic data", body: "UCI Student Performance dataset combined with a 500-student institutional sample, covering attendance, study habits, and assessment outcomes." },
-  { title: "Full ML workflow, not just charts", body: "Walk through every step a data scientist would: ingest, clean, explore, engineer features, train, evaluate, and serve predictions." },
-  { title: "Built for faculty & admins", body: "Identify at-risk students before final exams, surface top performers for honors, and download per-class reports as PDF." },
-  { title: "Explainable predictions", body: "See feature importance, confusion matrices, and per-student suggestions — not a black box." },
-];
-
-function Landing() {
+function AuthLanding() {
   useSplineViewer();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<Mode>("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // If already signed in, skip straight to dashboard
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/dashboard" });
+    });
+  }, [navigate]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    try {
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast.success("Welcome back");
+        navigate({ to: "/dashboard" });
+      } else if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        });
+        if (error) throw error;
+        toast.success("Account created");
+        navigate({ to: "/dashboard" });
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success("Check your inbox for a reset link");
+        setMode("signin");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* nav */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <GraduationCap className="h-4 w-4" />
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#07070b] text-white">
+      {/* Spline 3D background — keep pointer events enabled */}
+      <div className="absolute inset-0 z-0">
+        {/* @ts-expect-error - custom element */}
+        <spline-viewer
+          url="https://prod.spline.design/Dz6o7LVZzvTInuOJ/scene.splinecode"
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
+
+      {/* Subtle left-side dark gradient so the card is readable without
+          covering the right half where the 3D scene lives */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-full md:w-[55%]"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(7,7,11,0.85) 0%, rgba(7,7,11,0.55) 55%, rgba(7,7,11,0) 100%)",
+        }}
+      />
+
+      {/* Auth surface. Wrapper lets cursor pass through; the card itself
+          captures events so the Spline scene stays fully interactive on the
+          right side. */}
+      <div className="pointer-events-none relative z-20 flex min-h-screen items-center px-6 md:px-[8vw]">
+        <div className="pointer-events-auto w-full max-w-[420px]">
+          {/* brand */}
+          <div className="mb-8 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 backdrop-blur">
+              <span className="text-sm font-semibold">S</span>
             </div>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold">ScholarSense</div>
-              <div className="text-[11px] text-muted-foreground">Academic Analytics</div>
-            </div>
+            <span className="text-sm font-medium tracking-tight text-white/90">ScholarSense</span>
           </div>
-          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#workflow" className="hover:text-foreground">Workflow</a>
-            <a href="#stats" className="hover:text-foreground">Outcomes</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            
-            <Link to="/dashboard" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              Launch Dashboard <ArrowRight className="h-3.5 w-3.5" />
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-7 shadow-[0_20px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+            <div className="mb-6">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset password" : "Welcome back"}
+              </h1>
+              <p className="mt-1.5 text-sm text-white/60">
+                {mode === "signup"
+                  ? "Start exploring student performance analytics."
+                  : mode === "forgot"
+                  ? "We'll email you a recovery link."
+                  : "Sign in to continue to your workspace."}
+              </p>
+            </div>
+
+            {/* toggle */}
+            {mode !== "forgot" && (
+              <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/30 p-1 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setMode("signin")}
+                  className={`rounded-md py-1.5 transition ${
+                    mode === "signin" ? "bg-white/10 text-white" : "text-white/55 hover:text-white"
+                  }`}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("signup")}
+                  className={`rounded-md py-1.5 transition ${
+                    mode === "signup" ? "bg-white/10 text-white" : "text-white/55 hover:text-white"
+                  }`}
+                >
+                  Sign up
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="group relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition group-focus-within:text-white/80" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="h-11 w-full rounded-lg border border-white/10 bg-black/30 pl-9 pr-3 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/30 focus:bg-black/40 focus:ring-2 focus:ring-white/10"
+                />
+              </div>
+
+              {mode !== "forgot" && (
+                <div className="group relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition group-focus-within:text-white/80" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={mode === "signup" ? "At least 6 characters" : "Your password"}
+                    className="h-11 w-full rounded-lg border border-white/10 bg-black/30 pl-9 pr-3 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/30 focus:bg-black/40 focus:ring-2 focus:ring-white/10"
+                  />
+                </div>
+              )}
+
+              {mode === "signin" && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setMode("forgot")}
+                    className="text-xs text-white/55 transition hover:text-white"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="group/btn inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-white text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-60"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    {mode === "signup" ? "Create account" : mode === "forgot" ? "Send reset link" : "Sign in"}
+                    <ArrowRight className="h-4 w-4 transition group-hover/btn:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  onClick={() => setMode("signin")}
+                  className="block w-full text-center text-xs text-white/55 transition hover:text-white"
+                >
+                  Back to sign in
+                </button>
+              )}
+            </form>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-white/40 md:text-left">
+            By continuing you agree to our terms ·{" "}
+            <Link to="/dashboard" className="underline-offset-2 hover:text-white/70 hover:underline">
+              Skip to dashboard
             </Link>
-          </div>
+          </p>
         </div>
-      </header>
-
-      {/* hero */}
-      <section className="relative overflow-hidden border-b border-border">
-        {/* Spline 3D background */}
-        <div className="pointer-events-none absolute inset-0 -z-0 opacity-60">
-          {/* @ts-expect-error - custom element */}
-          <spline-viewer url="https://prod.spline.design/Dz6o7LVZzvTInuOJ/scene.splinecode" style={{ width: "100%", height: "100%" }} />
-        </div>
-        <div className="absolute inset-0 -z-0 bg-gradient-to-b from-background/40 via-background/60 to-background" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" /> v1.0 — Production
-            </span>
-            <h1 className="mt-5 text-3xl font-semibold leading-tight tracking-tight md:text-5xl">
-              Predict student academic performance using Machine Learning.
-            </h1>
-            <p className="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
-              ScholarSense is an end-to-end analytics platform that helps faculty identify at-risk students,
-              understand performance drivers, and forecast final grades — all backed by transparent, reproducible ML.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/dashboard" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                Launch Dashboard <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link to="/predict" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium hover:bg-accent">
-                Try a prediction
-              </Link>
-            </div>
-            <div className="mt-8 grid grid-cols-3 gap-6 border-t border-border pt-6">
-              {[
-                ["500", "Students analysed"],
-                ["94%", "Model accuracy"],
-                ["7", "Pipeline modules"],
-              ].map(([v, l]) => (
-                <div key={l}>
-                  <div className="font-mono text-2xl font-semibold tabular-nums">{v}</div>
-                  <div className="text-xs text-muted-foreground">{l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* mock screenshot */}
-          <div className="relative">
-            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-              <div className="mb-3 flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-danger/70" />
-                <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
-                <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { l: "Total Students", v: "500" },
-                  { l: "Avg Score", v: "78%" },
-                  { l: "Pass Rate", v: "92%" },
-                ].map((k) => (
-                  <div key={k.l} className="rounded-md border border-border bg-background p-2.5">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{k.l}</div>
-                    <div className="mt-1 font-mono text-lg font-semibold">{k.v}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 rounded-md border border-border bg-background p-3">
-                <div className="mb-2 text-[11px] font-medium text-muted-foreground">FINAL SCORE DISTRIBUTION</div>
-                <svg viewBox="0 0 200 80" className="w-full">
-                  {[14,28,46,62,72,68,52,40,28,18].map((h, i) => (
-                    <rect key={i} x={i*20+2} y={80-h} width={16} height={h} fill="var(--primary)" opacity={0.85} rx={1.5} />
-                  ))}
-                </svg>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-md border border-success/30 bg-success/5 p-2.5">
-                  <div className="text-[10px] uppercase tracking-wide text-success">Top performers</div>
-                  <div className="mt-1 font-mono text-base font-semibold">42</div>
-                </div>
-                <div className="rounded-md border border-danger/30 bg-danger/5 p-2.5">
-                  <div className="text-[10px] uppercase tracking-wide text-danger">At-risk students</div>
-                  <div className="mt-1 font-mono text-base font-semibold">38</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* workflow */}
-      <section id="workflow" className="border-b border-border bg-secondary/40">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="mb-8 max-w-2xl">
-            <div className="text-xs font-semibold uppercase tracking-wider text-primary">Workflow</div>
-            <h2 className="mt-1 text-2xl font-semibold md:text-3xl">A complete ML pipeline, not a single screen.</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Each module is a dedicated workspace, mirroring how a data team would actually deliver this analysis.</p>
-          </div>
-          <ol className="grid grid-cols-2 gap-2 md:grid-cols-7">
-            {STEPS.map((s, i) => (
-              <li key={s.label} className="rounded-md border border-border bg-card p-3 text-center">
-                <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <s.icon className="h-4 w-4" />
-                </div>
-                <div className="text-[11px] text-muted-foreground">Step {i + 1}</div>
-                <div className="text-xs font-medium">{s.label}</div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* features */}
-      <section id="features" className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="grid gap-6 md:grid-cols-2">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="rounded-lg border border-border bg-card p-5">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <h3 className="text-base font-semibold">{f.title}</h3>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* stats */}
-      <section id="stats" className="border-b border-border bg-secondary/40">
-        <div className="mx-auto max-w-6xl px-6 py-14 text-center">
-          <h2 className="text-2xl font-semibold md:text-3xl">Designed to support real academic decisions.</h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">Built around faculty, not dashboards. Every chart and prediction is traceable to the underlying data.</p>
-          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-3">
-            {[
-              { v: "R² 0.84", l: "Grade prediction (Gradient Boosting)" },
-              { v: "F1 0.91", l: "Pass/fail classifier" },
-              { v: "MAE 0.94", l: "On 0–20 grade scale" },
-            ].map((k) => (
-              <div key={k.l} className="rounded-lg border border-border bg-card p-5">
-                <div className="font-mono text-2xl font-semibold">{k.v}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{k.l}</div>
-              </div>
-            ))}
-          </div>
-          <Link to="/dashboard" className="mt-8 inline-flex items-center gap-1.5 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-            Launch Dashboard <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
-
-      {/* pages guide */}
-      <section id="pages" className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="mb-8 max-w-2xl">
-            <div className="text-xs font-semibold uppercase tracking-wider text-primary">Inside the app</div>
-            <h2 className="mt-1 text-2xl font-semibold md:text-3xl">What every page does</h2>
-            <p className="mt-2 text-sm text-muted-foreground">A quick tour of the 10 workspaces that make up ScholarSense.</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              { group: "Overview", page: "Dashboard", to: "/dashboard", body: "Your command center. KPI cards (total students, average score, pass rate, at-risk count), distribution charts and quick links into every other workspace. The first place you land after login." },
-              { group: "Data Pipeline", page: "Data Collection", to: "/data/upload", body: "Bring data in. Upload CSV files of student records, enter rows manually, or load the bundled mock dataset to explore the platform. Includes a password-protected delete tool to wipe CSV or manual data." },
-              { group: "Data Pipeline", page: "Cleaning", to: "/data/clean", body: "Preprocess raw data. Detect missing values, drop duplicates, fix outliers, normalize numeric columns and encode categoricals so the dataset is model-ready." },
-              { group: "Data Pipeline", page: "EDA", to: "/eda", body: "Exploratory Data Analysis. Histograms, correlation heatmaps, box plots and group comparisons that reveal patterns between attendance, study habits and final grades." },
-              { group: "Data Pipeline", page: "Feature Engineering", to: "/features", body: "Turn raw columns into model signals. Create derived features (study-to-failure ratio, attendance bands), select the most predictive variables and preview their impact." },
-              { group: "Modeling", page: "Evaluate", to: "/model/evaluate", body: "Inspect how the trained model performs. Accuracy, F1, R², MAE, confusion matrix, ROC curve and per-feature importance — everything you need to trust the predictions." },
-              { group: "Modeling", page: "Predict", to: "/predict", body: "Single-student prediction. Enter one student's attributes (attendance, study hours, prior grades) and instantly see predicted final score, pass/fail and an explanation of which features drove the result." },
-              { group: "Modeling", page: "Batch Predict", to: "/predict/batch", body: "Score an entire class at once. Pick a batch (e.g. CSE-A, IT-A) and get predictions for every student in that group — useful for end-of-term reviews." },
-              { group: "Administration", page: "Model Operations", to: "/admin/models", body: "Manage model versions. View training history, switch the active model, compare metrics across versions and archive older ones." },
-              { group: "Output", page: "Reports", to: "/reports", body: "Faculty-ready output. Generate PDF reports per class with at-risk lists, top performers and recommended interventions — ready to share with administration." },
-            ].map((p) => (
-              <Link key={p.page} to={p.to} className="group rounded-lg border border-border bg-card p-5 transition hover:border-primary/40 hover:bg-accent/30">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-primary">{p.group}</div>
-                <div className="mt-1 flex items-center gap-1.5 text-base font-semibold">
-                  {p.page}
-                  <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100" />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{p.body}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <footer className="py-6 text-center text-xs text-muted-foreground">
-        ScholarSense · Academic Analytics Platform · {new Date().getFullYear()}
-      </footer>
+      </div>
     </div>
   );
 }

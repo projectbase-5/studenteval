@@ -1,42 +1,56 @@
-## 1. Hide "Cleaning" and "Feature Engineering" from sidebar
+## Plan: Replace landing page with Spline-powered auth page
 
-In `src/components/WorkspaceShell.tsx`, remove the `/data/clean` and `/features` entries from the `NAV` array (Data Pipeline group keeps only Data Collection + EDA). Route files stay intact so the pages remain reachable by direct URL.
+### What changes
 
-## 2. Auto-close mobile/tablet sidebar on navigation
+1. **`src/routes/index.tsx`** — fully replace the current marketing landing with a fullscreen auth page:
+   - Fullscreen `<spline-viewer>` background (script lazy-loaded once, viewer 1.12.94, scene `Dz6o7LVZzvTInuOJ`).
+   - Spline canvas keeps native pointer events — no `pointer-events: none`, no overlay covering the right half.
+   - Glassmorphism auth card pinned to left-center (`md:ml-[8vw]`, max-w ~420px, `backdrop-blur-xl bg-white/5 border-white/10`), vertically centered.
+   - Right side fully open so the 3D scene stays interactive.
+   - Subtle radial dark gradient behind the card only (not full-screen) for text legibility.
+   - Sign In / Sign Up segmented toggle, email + password fields, "Forgot password?" link, primary action button, error/success states.
+   - Linear/Vercel dark aesthetic: tight typography, hairline borders, soft glow on focus, micro hover transitions.
+   - Mobile: card centers, slightly more opaque background for readability.
 
-In `WorkspaceShell.tsx`, inside `AppSidebar`'s menu rendering, read `setOpenMobile` and `isMobile` from `useSidebar()` and call `setOpenMobile(false)` in each `<Link>`'s `onClick`. This collapses the sheet immediately when a nav item is tapped on phone/tablet widths.
+2. **Auth wiring (Supabase, email/password only — no profiles table per user's choice)**
+   - Sign up: `supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + '/dashboard' } })`. With email confirmation disabled, the user is signed in immediately.
+   - Sign in: `supabase.auth.signInWithPassword`.
+   - Forgot password: `resetPasswordForEmail(email, { redirectTo: origin + '/reset-password' })` shown as an inline mini-form.
+   - On success: `navigate({ to: '/dashboard' })`.
+   - Toast feedback via existing `sonner`.
 
-## 3. Fix the "Not Found" preview on `/` and other routes
+3. **New route `src/routes/reset-password.tsx`** (required by the password-reset flow)
+   - Public route, reads recovery token from URL hash, calls `supabase.auth.updateUser({ password })`, then redirects to `/dashboard`.
 
-Root cause investigation: the preview screenshot shows `/data/upload` rendering only "Not Found" plain text — that's TanStack Router's `defaultNotFoundComponent` fallback, which means the route tree isn't matching the URL. Two likely culprits:
+4. **`supabase/config.toml`** — add `[auth]` block disabling email confirmations:
+   ```
+   [auth]
+   enable_signup = true
+   [auth.email]
+   enable_confirmations = false
+   ```
 
-a. `src/routeTree.gen.ts` is stale (the SPA migration deleted/regenerated it but it may not include all current routes).
-b. The `<spline-viewer>` script in `index.html` is throwing at module evaluation (`Cannot read properties of undefined (reading 'position')`), which can break first paint in some browsers.
+5. **Routing/protection** — per user choice, workspace pages stay public. No `_authenticated` layout. Dashboard simply receives the redirect after login.
 
-Fixes:
+### What does NOT change
 
-- Delete `src/routeTree.gen.ts` so the TanStack Router Vite plugin regenerates it cleanly on next dev start.
-- Remove the global `<script src="…spline-viewer.js">` from `index.html` and instead inject it lazily only on the landing route (`src/routes/index.tsx`) via a `useEffect` that appends the script tag once. This prevents the Spline runtime crash from affecting the rest of the SPA.
-- Verify `src/routes/index.tsx` exists with `createFileRoute("/")` — if missing, recreate a minimal version.
+- `WorkspaceShell`, dashboard, predict, reports, all existing pages remain untouched.
+- Existing pages-guide / workflow / features marketing content is removed with the old landing page (user asked to "remove the current landing page").
+- No profiles table, no user_roles table, no DB migration.
 
-## 4. PWA install support (manifest-only, no service worker)
+### Spline interactivity guarantees
 
-Per Lovable guidance, do **not** add `vite-plugin-pwa` / service workers (they break the preview iframe and cache stale builds). The existing `public/manifest.json` already enables Add-to-Home-Screen on Android and iOS. Polish  
-  
-show the install button of the pwa on the top right corner so that user can download the site with that :
+- `<spline-viewer>` lives in a `fixed inset-0` container with `z-0` and no `pointer-events-none`.
+- Auth card sits in a sibling `relative z-10` container with `pointer-events-none` on the wrapper and `pointer-events-auto` only on the card itself — so cursor moves over the empty right side pass through to the 3D scene.
+- Script tag injected once via `useEffect`, guarded by id check.
+- Optional `loading-anim` attribute removed to reduce first-paint cost; viewer handles its own RAF loop.
 
-- Add a 192×192 icon (`public/icon-192.png`) alongside the existing 512 for better Android compatibility, and reference both in `manifest.json`.
-- Add `<link rel="apple-touch-icon" sizes="180x180" …>` and `<meta name="mobile-web-app-capable" content="yes">` to `index.html` for iOS install polish.
-- Change manifest `start_url` from `/dashboard` to `/` so installed PWAs land on the marketing page (then the user clicks Dashboard) — or keep `/dashboard` if user prefers; will default to `/dashboard` for app-like feel.
-- Add a small "Install app" button in the landing hero that listens for `beforeinstallprompt` and triggers `prompt()` on Android/desktop Chrome. iOS Safari has no API — show a one-line hint "Tap Share → Add to Home Screen" when on iOS.
+### Quick fix for the existing runtime error
 
-Note: full offline support would require a service worker, which we're intentionally skipping. Installability + standalone display works on both Android and iOS with just the manifest.
+The current `/` throws `Cannot read properties of undefined (reading 'position')` from the marketing landing's mock-screenshot SVG block. Since we're replacing the whole file, the error goes away with the rewrite — no separate patch needed.
 
-## Files touched
+### Files touched
 
-- `src/components/WorkspaceShell.tsx` — trim nav + mobile auto-close
-- `src/routeTree.gen.ts` — delete (auto-regenerates)
-- `index.html` — drop global Spline script, add iOS PWA meta
-- `src/routes/index.tsx` — lazy-load Spline viewer; add Install button
-- `public/manifest.json` — add 192 icon entry
-- `public/icon-192.png` — new asset
+- rewrite `src/routes/index.tsx`
+- create `src/routes/reset-password.tsx`
+- edit `supabase/config.toml` (disable email confirmation)
