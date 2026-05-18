@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          activity_type: string
+          created_at: string
+          details: Json
+          id: string
+          user_label: string | null
+        }
+        Insert: {
+          action: string
+          activity_type?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          user_label?: string | null
+        }
+        Update: {
+          action?: string
+          activity_type?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          user_label?: string | null
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           assignments_completed: number
